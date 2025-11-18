@@ -1,0 +1,311 @@
+import { useState } from 'react';
+import { Heart, X } from 'lucide-react';
+import { Card, CardContent } from '../ui/card';
+import { Button } from '../ui/button';
+import { toast } from 'sonner';
+
+interface SubCategory {
+  name: string;
+  code: string;
+}
+
+interface Category {
+  id: string;
+  name: string;
+  subCategories: SubCategory[];
+}
+
+const categories: Category[] = [
+  {
+    id: 'ai-learning',
+    name: '인공지능 및 학습',
+    subCategories: [
+      { name: '인공지능', code: 'cs.AI' },
+      { name: '기계학습', code: 'cs.LG' },
+      { name: '신경 및 진화 계산', code: 'cs.NE' },
+      { name: '다중 에이전트 시스템', code: 'cs.MA' },
+      { name: '자연어 처리', code: 'cs.CL' },
+      { name: '컴퓨터 비전', code: 'cs.CV' },
+      { name: '멀티미디어 처리', code: 'cs.MM' },
+      { name: '인간-컴퓨터 상호작용', code: 'cs.HC' },
+    ],
+  },
+  {
+    id: 'systems',
+    name: '시스템',
+    subCategories: [
+      { name: '운영체제', code: 'cs.OS' },
+      { name: '분산·병렬·클러스터 컴퓨팅', code: 'cs.DC' },
+      { name: '시스템 및 제어', code: 'cs.SY' },
+      { name: '소프트웨어 공학', code: 'cs.SE' },
+      { name: '성능 분석 및 최적화', code: 'cs.PF' },
+    ],
+  },
+  {
+    id: 'network',
+    name: '네트워크',
+    subCategories: [
+      { name: '네트워크 및 인터넷 아키텍처', code: 'cs.NI' },
+      { name: '사회 및 정보 네트워크', code: 'cs.SI' },
+    ],
+  },
+  {
+    id: 'security',
+    name: '보안',
+    subCategories: [
+      { name: '암호학 및 보안', code: 'cs.CR' },
+      { name: '정보 프라이버시 및 정책', code: 'cs.CY' },
+      { name: '하드웨어 보안 아키텍처', code: 'cs.AR' },
+    ],
+  },
+  {
+    id: 'data-info',
+    name: '데이터 및 정보',
+    subCategories: [
+      { name: '데이터베이스', code: 'cs.DB' },
+      { name: '정보 검색', code: 'cs.IR' },
+      { name: '데이터 구조 및 알고리즘', code: 'cs.DS' },
+      { name: '디지털 라이브러리', code: 'cs.DL' },
+    ],
+  },
+  {
+    id: 'theory-math',
+    name: '계산 이론 및 수학',
+    subCategories: [
+      { name: '계산 복잡도', code: 'cs.CC' },
+      { name: '논리학', code: 'cs.LO' },
+      { name: '형식언어', code: 'cs.FL' },
+      { name: '이산 수학', code: 'cs.DM' },
+      { name: '게임 이론', code: 'cs.GT' },
+      { name: '상징 계산', code: 'cs.SC' },
+      { name: '수학 소프트웨어', code: 'cs.MS' },
+      { name: '일반 문헌', code: 'cs.GL' },
+    ],
+  },
+  {
+    id: 'computational-science',
+    name: '계산 과학 및 수치 해석',
+    subCategories: [
+      { name: '수치 해석', code: 'cs.NA' },
+      { name: '계산 공학', code: 'cs.CE' },
+      { name: '정보 이론', code: 'cs.IT' },
+      { name: '신흥 기술', code: 'cs.ET' },
+    ],
+  },
+  {
+    id: 'robotics-engineering',
+    name: '로보틱스 및 응용 공학',
+    subCategories: [
+      { name: '로보틱스', code: 'cs.RO' },
+      { name: '컴퓨터 그래픽스', code: 'cs.GR' },
+      { name: '사운드·음향 처리', code: 'cs.SD' },
+    ],
+  },
+  {
+    id: 'programming-hardware',
+    name: '프로그래밍 언어 및 하드웨어',
+    subCategories: [
+      { name: '프로그래밍 언어', code: 'cs.PL' },
+      { name: '하드웨어 아키텍처', code: 'cs.AR' },
+    ],
+  },
+  {
+    id: 'human-social',
+    name: '인간 및 사회 시스템',
+    subCategories: [
+      { name: '인간-컴퓨터 상호작용', code: 'cs.HC' },
+      { name: '컴퓨터와 사회', code: 'cs.CY' },
+    ],
+  },
+  {
+    id: 'other',
+    name: '기타 및 융합 분야',
+    subCategories: [
+      { name: '기타 컴퓨터 과학', code: 'cs.OH' },
+      { name: '디지털 라이브러리 및 정보 보존', code: 'cs.DL' },
+      { name: '신흥 기술', code: 'cs.ET' },
+    ],
+  },
+];
+
+const MAX_SELECTIONS = 5;
+
+export function InterestCategorySelector() {
+  const [selectedCategories, setSelectedCategories] = useState<SubCategory[]>([]);
+  const [expandedCategory, setExpandedCategory] = useState<string | null>('ai-learning');
+
+  const handleCategoryClick = (subCategory: SubCategory) => {
+    const isAlreadySelected = selectedCategories.some(cat => cat.code === subCategory.code);
+
+    if (isAlreadySelected) {
+      // 선택 해제
+      setSelectedCategories(prev => prev.filter(cat => cat.code !== subCategory.code));
+    } else {
+      // 새로 선택
+      if (selectedCategories.length >= MAX_SELECTIONS) {
+        toast.error(`최대 ${MAX_SELECTIONS}개까지만 선택할 수 있습니다.`);
+        return;
+      }
+      setSelectedCategories(prev => [...prev, subCategory]);
+    }
+  };
+
+  const handleRemoveCategory = (code: string) => {
+    setSelectedCategories(prev => prev.filter(cat => cat.code !== code));
+  };
+
+  const handleSave = () => {
+    console.log('Saved categories:', selectedCategories);
+    toast.success('관심 카테고리가 저장되었습니다.');
+    // 실제로는 API 호출하여 서버에 저장
+  };
+
+  const isCategorySelected = (code: string) => {
+    return selectedCategories.some(cat => cat.code === code);
+  };
+
+  const handleMainCategoryClick = (categoryId: string) => {
+    setExpandedCategory(categoryId === expandedCategory ? null : categoryId);
+  };
+
+  const expandedCategoryData = categories.find(cat => cat.id === expandedCategory);
+
+  return (
+    <Card className="mb-8 shadow-md" style={{ borderRadius: '12px' }}>
+      <CardContent className="p-4 md:p-6">
+        <div className="mb-6">
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-2 mb-2">
+            <div className="flex items-center gap-2">
+              <Heart className="w-6 h-6" style={{ color: '#4FA3D1' }} />
+              <h2 className="text-[20px] md:text-[24px]" style={{ color: '#215285' }}>관심 카테고리 선택</h2>
+            </div>
+            <span className="text-sm text-gray-600">
+              {selectedCategories.length} / {MAX_SELECTIONS}개 선택됨
+            </span>
+          </div>
+          <p className="text-sm text-gray-600">최대 5개까지 선택할 수 있습니다</p>
+        </div>
+
+        {/* 선택된 카테고리 표시 */}
+        {selectedCategories.length > 0 && (
+          <div className="mb-6 p-4 bg-gradient-to-r from-blue-50 to-cyan-50 rounded-lg border border-blue-100">
+            <p className="text-sm mb-3" style={{ color: '#215285' }}>✓ 선택한 카테고리</p>
+            <div className="flex flex-wrap gap-2">
+              {selectedCategories.map((category) => (
+                <div
+                  key={category.code}
+                  className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-sm shadow-sm hover:shadow-md transition-shadow"
+                  style={{ backgroundColor: '#215285', color: '#ffffff' }}
+                >
+                  <span>{category.name}</span>
+                  <button
+                    onClick={() => handleRemoveCategory(category.code)}
+                    className="hover:bg-white/20 rounded-full p-0.5 transition-colors"
+                    aria-label="삭제"
+                  >
+                    <X className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* 1차 카테고리 - 가로 정렬 버튼형 */}
+        <div className="mb-6">
+          <div className="flex flex-wrap gap-2">
+            {categories.map((category) => {
+              const isExpanded = expandedCategory === category.id;
+              return (
+                <Button
+                  key={category.id}
+                  onClick={() => handleMainCategoryClick(category.id)}
+                  variant="outline"
+                  className="h-10 px-4 transition-all"
+                  style={{
+                    backgroundColor: isExpanded ? '#4FA3D1' : 'transparent',
+                    color: isExpanded ? '#fff' : '#333',
+                    border: isExpanded ? '1px solid #4FA3D1' : '1px solid #e5e7eb',
+                    borderRadius: '8px',
+                  }}
+                  onMouseEnter={(e) => {
+                    if (!isExpanded) {
+                      e.currentTarget.style.backgroundColor = '#f3f4f6';
+                    }
+                  }}
+                  onMouseLeave={(e) => {
+                    if (!isExpanded) {
+                      e.currentTarget.style.backgroundColor = 'transparent';
+                    }
+                  }}
+                >
+                  {category.name}
+                </Button>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* 2차 카테고리 - 하위 세부 카테고리 */}
+        {expandedCategoryData && (
+          <div className="border-t border-gray-200 pt-6 animate-in fade-in slide-in-from-top-2 duration-300">
+            <h3 className="mb-4" style={{ color: '#215285' }}>
+              {expandedCategoryData.name} 세부 분야
+            </h3>
+            <div className="flex flex-wrap gap-2">
+              {expandedCategoryData.subCategories.map((subCategory) => {
+                const isSelected = isCategorySelected(subCategory.code);
+                const isDisabled = !isSelected && selectedCategories.length >= MAX_SELECTIONS;
+
+                return (
+                  <button
+                    key={subCategory.code}
+                    onClick={() => handleCategoryClick(subCategory)}
+                    disabled={isDisabled}
+                    className="px-4 py-2 rounded-full text-sm shadow-sm transition-all"
+                    style={{
+                      backgroundColor: isSelected ? '#4FA3D1' : '#E0EAF2',
+                      color: isSelected ? '#fff' : '#215285',
+                      border: 'none',
+                      opacity: isDisabled ? 0.4 : 1,
+                      cursor: isDisabled ? 'not-allowed' : 'pointer',
+                    }}
+                    onMouseEnter={(e) => {
+                      if (!isDisabled) {
+                        if (isSelected) {
+                          e.currentTarget.style.backgroundColor = '#3B8AB8';
+                        } else {
+                          e.currentTarget.style.backgroundColor = '#C8D9E6';
+                        }
+                      }
+                    }}
+                    onMouseLeave={(e) => {
+                      if (!isDisabled) {
+                        e.currentTarget.style.backgroundColor = isSelected ? '#4FA3D1' : '#E0EAF2';
+                      }
+                    }}
+                  >
+                    {subCategory.name}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+        {/* 저장 버튼 */}
+        <div className="flex justify-end mt-6">
+          <Button
+            onClick={handleSave}
+            className="text-white hover:opacity-90 transition-opacity"
+            style={{ backgroundColor: '#215285' }}
+            disabled={selectedCategories.length === 0}
+          >
+            <Heart className="w-4 h-4 mr-2" />
+            관심 카테고리 저장
+          </Button>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}

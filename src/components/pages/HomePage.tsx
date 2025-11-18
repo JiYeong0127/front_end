@@ -1,0 +1,56 @@
+import { Header } from '../layout/Header';
+import { HeroSection } from '../layout/HeroSection';
+import { RecentlyViewedPapers } from '../papers/RecentlyViewedPapers';
+import { CategorySelector } from '../filters/CategorySelector';
+import { PopularPapers } from '../papers/PopularPapers';
+import { Footer } from '../layout/Footer';
+import { ScrollToTopButton } from '../layout/ScrollToTopButton';
+import { useNavigation } from '../../hooks/useNavigation';
+import { useAuthStore } from '../../store/authStore';
+import { useAppStore } from '../../store/useAppStore';
+import { usePaperActions } from '../../hooks/usePaperActions';
+
+export function HomePage() {
+  const { goToLogin, goToSearch } = useNavigation();
+  const isLoggedIn = useAuthStore((state) => state.isLoggedIn);
+  const bookmarkedPaperIds = useAppStore((state) => state.bookmarkedPaperIds);
+  const { handlePaperClick, handleBookmark } = usePaperActions();
+
+  const handleCategorySelect = (categoryCode: string) => {
+    if (!isLoggedIn) {
+      goToLogin();
+      return;
+    }
+    goToSearch(categoryCode);
+  };
+
+  const handleSearch = (query: string) => {
+    if (!isLoggedIn) {
+      goToLogin();
+      return;
+    }
+    goToSearch(query);
+  };
+
+  return (
+    <div className="min-h-screen flex flex-col">
+      <Header />
+      <main className="flex-1">
+        <HeroSection onSearch={handleSearch} />
+        <RecentlyViewedPapers 
+          onPaperClick={handlePaperClick} 
+          bookmarkedPaperIds={bookmarkedPaperIds.map(id => parseInt(id))}
+          onToggleBookmark={handleBookmark}
+        />
+        <CategorySelector onCategorySelect={handleCategorySelect} />
+        <PopularPapers 
+          bookmarkedPaperIds={bookmarkedPaperIds.map(id => parseInt(id))}
+          onToggleBookmark={handleBookmark}
+          onPaperClick={handlePaperClick}
+        />
+      </main>
+      <Footer />
+      <ScrollToTopButton />
+    </div>
+  );
+}
