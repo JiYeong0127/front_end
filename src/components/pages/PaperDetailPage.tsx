@@ -16,7 +16,8 @@ export function PaperDetailPage() {
   const { id } = useParams<{ id: string }>();
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
-  const paperId = id ? parseInt(id) : 1;
+  // 문자열 ID 그대로 사용 (API 명세에 맞춤)
+  const paperId = id || '';
   const searchQuery = searchParams.get('q') || '';
   const { isLoggedIn } = usePaperActions();
   const bookmarkedPaperIds = useAppStore((state) => state.bookmarkedPaperIds);

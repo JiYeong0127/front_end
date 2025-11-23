@@ -9,7 +9,7 @@
  */
 
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { api, endpoints, Paper, SearchPapersResponse, BookmarkResponse, SearchHistoryResponse, fetchSearchHistory, addBookmark, AddBookmarkResponse, deleteBookmark, updateBookmark, BookmarkItem, UpdateBookmarkResponse, fetchBookmarks, BookmarksListResponse, BookmarkListItem } from '../../lib/api';
+import { api, endpoints, Paper, SearchPapersResponse, BookmarkResponse, SearchHistoryResponse, fetchSearchHistory, addBookmark, AddBookmarkResponse, deleteBookmark, updateBookmark, BookmarkItem, UpdateBookmarkResponse, fetchBookmarks, BookmarksListResponse, BookmarkListItem, searchPapers, getPaperDetail } from '../../lib/api';
 import { useAuthStore } from '../../store/authStore';
 import { useAppStore } from '../../store/useAppStore';
 import { toast } from 'sonner';
@@ -46,27 +46,12 @@ export function useSearchPapersQuery(params: SearchPapersParams, enabled: boolea
   return useQuery({
     queryKey: ['papers', 'search', params.q, categoriesKey, params.page],
     queryFn: async (): Promise<SearchPapersResponse> => {
-      const queryParams: Record<string, string | number | string[]> = {
-        q: params.q,
-      };
-      
-      // categories가 있으면 추가 (서버가 여러 개의 categories 파라미터를 받는 경우)
-      if (params.categories && params.categories.length > 0) {
-        // axios는 배열을 자동으로 여러 파라미터로 변환합니다
-        // 예: categories: ['cs.AI', 'cs.LG'] -> ?categories=cs.AI&categories=cs.LG
-        queryParams.categories = params.categories;
-      }
-      
-      // page 추가
-      if (params.page) {
-        queryParams.page = params.page;
-      }
-      
-      const response = await api.get<SearchPapersResponse>(endpoints.papers.search, {
-        params: queryParams,
-        timeout: 180000, // 검색 API는 응답 시간이 길어 180초(3분)로 설정, 서버 응답 시간 고려
-      });
-      return response.data;
+      // searchPapers API 함수 사용 (명세서에 맞게 구현됨)
+      return searchPapers(
+        params.q,
+        params.page || 1,
+        params.categories && params.categories.length > 0 ? params.categories : undefined
+      );
     },
     enabled: enabled && !!params.q,
     staleTime: 2 * 60 * 1000, // 2 minutes
@@ -77,7 +62,7 @@ export function useSearchPapersQuery(params: SearchPapersParams, enabled: boolea
 /**
  * 논문 상세 조회 쿼리 훅
  * 
- * @param paperId - 논문 ID
+ * @param paperId - 논문 ID (문자열 또는 숫자)
  * @param enabled - 쿼리 활성화 여부 (기본값: true)
  * @returns React Query 쿼리 객체
  * 
@@ -86,12 +71,11 @@ export function useSearchPapersQuery(params: SearchPapersParams, enabled: boolea
  * - paperId가 없으면 쿼리 비활성화
  * - staleTime: 5분 (5분 동안 캐시된 데이터 사용)
  */
-export function usePaperDetailQuery(paperId: number, enabled: boolean = true) {
+export function usePaperDetailQuery(paperId: string | number, enabled: boolean = true) {
   return useQuery({
     queryKey: ['papers', 'detail', paperId],
     queryFn: async (): Promise<Paper> => {
-      const response = await api.get<Paper>(endpoints.papers.detail(paperId));
-      return response.data;
+      return getPaperDetail(paperId); // API 함수 사용
     },
     enabled: enabled && !!paperId,
     staleTime: 5 * 60 * 1000, // 5 minutes

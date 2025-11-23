@@ -138,7 +138,7 @@ export const endpoints = {
   },
   papers: {
     search: '/papers/search',
-    detail: (id: number) => `/papers/${id}`,
+    detail: (id: string | number) => `/papers/${id}`,
     bookmarks: '/papers/bookmarks',
     toggleBookmark: (id: number) => `/papers/${id}/bookmark`,
     searchHistory: '/papers/search-history',
@@ -236,16 +236,180 @@ export const fetchBookmarks = (): Promise<BookmarksListResponse> =>
   api.get<BookmarksListResponse>(endpoints.bookmarks).then(res => res.data);
 
 /**
- * 관심 카테고리 조회 API 함수
+ * 관심 카테고리 조회 API 함수 (기존 호환성 유지)
+ * 
+ * API 명세:
+ * - Method: GET
+ * - URL: /user-interests
+ * - Body: none (없음)
+ * - Auth: Bearer 토큰 필요 (inherit)
  * 
  * @returns Promise<UserInterestsResponse> - 사용자의 관심 카테고리 코드 배열
  * 
+ * 응답 형식 (옵션 1 - category_codes):
+ * {
+ *   "category_codes": ["cs.AI", "cs.CL", "cs.CV"]
+ * }
+ * 
+ * 응답 형식 (옵션 2 - categories 배열):
+ * {
+ *   "categories": [
+ *     { "category_id": 32, "category_code": "cs.AI", "name": "인공지능" },
+ *     { "category_id": 141, "category_code": "cs.CL", "name": "자연어 처리" }
+ *   ]
+ * }
+ * 
+ * 응답 형식 (옵션 3 - category_ids):
+ * {
+ *   "category_ids": [32, 141, 70]
+ * }
+ * (이 경우 서버에서 카테고리 정보를 함께 반환해야 함)
+ * 
  * 주의사항:
- * - Authorization 헤더 필요
- * - GET 요청
+ * - Authorization 헤더 필요 (인터셉터에서 자동 주입)
+ * - GET 요청이므로 Body 없음
+ * 
+ * @deprecated 새로운 코드에서는 getInterestCategories() 사용 권장
  */
 export const fetchUserInterests = (): Promise<UserInterestsResponse> =>
   api.get<UserInterestsResponse>(endpoints.userInterests).then(res => res.data);
+
+/**
+ * 관심 카테고리 조회 API 함수
+ * 
+ * API 명세:
+ * - Method: GET
+ * - URL: /user-interests
+ * - Body: none (없음)
+ * - Auth: Bearer 토큰 필요 (inherit)
+ * 
+ * @returns Promise<UserInterestsResponse> - 사용자의 관심 카테고리 코드 배열
+ * 
+ * 응답 형식 (옵션 1 - category_codes):
+ * {
+ *   "category_codes": ["cs.AI", "cs.CL", "cs.CV"]
+ * }
+ * 
+ * 응답 형식 (옵션 2 - categories 배열):
+ * {
+ *   "categories": [
+ *     { "category_id": 32, "category_code": "cs.AI", "name": "인공지능" },
+ *     { "category_id": 141, "category_code": "cs.CL", "name": "자연어 처리" }
+ *   ]
+ * }
+ * 
+ * 응답 형식 (옵션 3 - category_ids):
+ * {
+ *   "category_ids": [32, 141, 70]
+ * }
+ * (이 경우 서버에서 카테고리 정보를 함께 반환해야 함)
+ * 
+ * 주의사항:
+ * - Authorization 헤더 필요 (인터셉터에서 자동 주입)
+ * - GET 요청이므로 Body 없음
+ */
+export const getInterestCategories = (): Promise<UserInterestsResponse> =>
+  api.get<UserInterestsResponse>(endpoints.userInterests).then(res => res.data);
+
+/**
+ * 논문 검색 API 함수
+ * 
+ * API 명세:
+ * - Method: GET
+ * - URL: /papers/search
+ * - Query Parameters:
+ *   - q: 검색어 (필수)
+ *   - categories: 카테고리 (선택, 단일 문자열 또는 배열)
+ *   - page: 페이지 번호 (선택, 기본값: 1)
+ * - Auth: Bearer 토큰 필요
+ * 
+ * @param q - 검색어
+ * @param page - 페이지 번호 (기본값: 1)
+ * @param categories - 카테고리 (단일 문자열 또는 배열, 선택사항)
+ * @returns Promise<SearchPapersResponse> - 검색 결과
+ * 
+ * 응답 형식:
+ * {
+ *   "papers": [
+ *     {
+ *       "id": "arxiv:2401.12345",
+ *       "title": "Transformer Advances",
+ *       "abstract": "...",
+ *       "authors": "Doe et al.",
+ *       "update_date": "2024-09-01",
+ *       "categories": ["cs.AI"]
+ *     }
+ *   ],
+ *   "total": 95,
+ *   "page": 1,
+ *   "pageSize": 10
+ * }
+ * 
+ * 주의사항:
+ * - Authorization 헤더 필요 (인터셉터에서 자동 주입)
+ * - timeout: 180초 (검색 API는 응답 시간이 길어 타임아웃을 180초로 설정)
+ */
+export const searchPapers = (
+  q: string,
+  page: number = 1,
+  categories?: string | string[]
+): Promise<SearchPapersResponse> => {
+  const params: Record<string, string | number | string[]> = {
+    q,
+    page,
+  };
+  
+  // categories 처리 (단일 문자열 또는 배열)
+  if (categories) {
+    if (Array.isArray(categories)) {
+      // 배열인 경우 여러 파라미터로 변환: ?categories=cs.AI&categories=cs.LG
+      params.categories = categories;
+    } else {
+      // 단일 문자열인 경우
+      params.categories = categories;
+    }
+  }
+  
+  return api.get<any>(endpoints.papers.search, {
+    params,
+    timeout: 180000, // 검색 API는 응답 시간이 길어 180초(3분)로 설정
+  }).then(res => {
+    // 디버깅: 서버 응답 확인
+    console.log('=== API 응답 디버깅 ===');
+    console.log('전체 응답:', res);
+    console.log('응답 데이터:', res.data);
+    console.log('모든 키:', Object.keys(res.data || {}));
+    console.log('======================');
+    
+    const serverData = res.data || {};
+    
+    // 서버가 사용하는 실제 키 확인 (여러 가능성 시도)
+    // papers, results, data, items 등 다양한 키 이름 지원
+    const papersArray = serverData.papers || 
+                       serverData.results || 
+                       serverData.data || 
+                       serverData.items || 
+                       [];
+    
+    // 프론트엔드 타입에 맞게 변환
+    const response: SearchPapersResponse = {
+      papers: papersArray,
+      total: serverData.total || 0,
+      page: serverData.page || 1,
+      pageSize: serverData.page_size || serverData.pageSize || 10,
+    };
+    
+    console.log('=== 변환된 응답 ===');
+    console.log('변환된 응답:', response);
+    console.log('papers 배열 길이:', response.papers.length);
+    if (response.papers.length > 0) {
+      console.log('첫 번째 논문:', response.papers[0]);
+    }
+    console.log('==================');
+    
+    return response;
+  });
+};
 
 /**
  * 검색 기록 조회 API 함수
@@ -331,6 +495,56 @@ export const addUserInterests = (categoryCodes: string[]): Promise<void> =>
   api.post(endpoints.userInterests, { category_codes: categoryCodes }).then(() => undefined);
 
 /**
+ * 관심 카테고리 추가 API 함수
+ * 
+ * @param category_codes - 추가할 카테고리 코드 배열 (예: ["cs.AI", "cs.LG"])
+ * @returns Promise<void> - 성공 시 아무 값도 반환하지 않음
+ * 
+ * 주의사항:
+ * - Authorization 헤더 필요
+ * - JSON 형식으로 전송
+ * - body: { "category_codes": string[] }
+ */
+export const addInterestCategories = (category_codes: string[]): Promise<void> =>
+  api.post('/user-interests', { category_codes }).then(() => undefined);
+
+/**
+ * 관심 카테고리 삭제 API 함수
+ * 
+ * @param code - 삭제할 카테고리 코드 (예: "cs.AI")
+ * @returns Promise<void> - 성공 시 아무 값도 반환하지 않음
+ * 
+ * 주의사항:
+ * - Authorization 헤더 필요
+ * - DELETE 요청
+ * - Query Parameter: codes
+ * - 예: DELETE /user-interests?codes=cs.AI
+ */
+export const deleteInterestCategory = (code: string): Promise<void> =>
+  api.delete('/user-interests', {
+    params: { codes: code },
+  }).then(() => undefined);
+
+/**
+ * 논문 상세 조회 API 함수
+ * 
+ * API 명세:
+ * - Method: GET
+ * - URL: /papers/{id}
+ * - Body: none (없음)
+ * - Auth: Bearer 토큰 필요 (inherit)
+ * 
+ * @param paperId - 논문 ID (문자열 또는 숫자)
+ * @returns Promise<Paper> - 논문 상세 정보
+ * 
+ * 주의사항:
+ * - Authorization 헤더 필요 (인터셉터에서 자동 주입)
+ * - GET 요청이므로 Body 없음
+ */
+export const getPaperDetail = (paperId: string | number): Promise<Paper> =>
+  api.get<Paper>(endpoints.papers.detail(paperId)).then(res => res.data);
+
+/**
  * ============================================
  * 타입 정의
  * ============================================
@@ -363,7 +577,15 @@ export interface User {
 /**
  * 논문 데이터 타입
  * 
- * @property id - 논문 고유 ID
+ * 데이터베이스 스키마:
+ * - id: String (예: "arxiv:2401.12345")
+ * - title: String
+ * - authors: String
+ * - abstract: String
+ * - categories: Array
+ * - update_date: String (예: "2024-09-01")
+ * 
+ * @property id - 논문 고유 ID (문자열 또는 숫자, 데이터베이스는 문자열)
  * @property title - 논문 제목
  * @property authors - 저자 (문자열 또는 배열로 올 수 있음)
  * @property year - 출판 연도 (숫자 또는 문자열로 올 수 있음)
@@ -374,19 +596,22 @@ export interface User {
  * @property externalUrl - 외부 링크 (선택)
  * @property translatedSummary - 번역된 요약 (선택)
  * @property update_count - 업데이트 횟수 (선택)
+ * @property update_date - 업데이트 날짜 (선택, 데이터베이스 스키마에 맞춤)
  */
 export interface Paper {
-  id: number;
+  id: string | number; // 데이터베이스는 문자열, 기존 호환성을 위해 number도 허용
   title: string;
   authors: string | string[]; // API에서 문자열 또는 배열로 올 수 있음
-  year: number | string; // API에서 숫자 또는 문자열로 올 수 있음
-  publisher: string;
-  abstract?: string;
+  year?: number | string; // API에서 숫자 또는 문자열로 올 수 있음
+  publisher?: string; // 선택사항으로 변경 (검색 결과에 없을 수 있음)
+  abstract?: string; // 데이터베이스 스키마에 있음
   keywords?: string[];
   categories?: string[];
   externalUrl?: string;
   translatedSummary?: string;
+  summary?: string; // abstract와 별도로 유지 (기존 호환성)
   update_count?: number; // 업데이트 횟수
+  update_date?: string; // 업데이트 날짜 (데이터베이스 스키마에 맞춤, 예: "2024-09-01")
 }
 
 /**
@@ -504,12 +729,35 @@ export interface SearchHistoryResponse {
 }
 
 /**
+ * 카테고리 정보 인터페이스
+ */
+export interface CategoryInfo {
+  category_id: number;
+  category_code: string;
+  name?: string;
+}
+
+/**
  * 관심 카테고리 조회 응답 타입
  * 
- * @property category_codes - 카테고리 코드 배열
+ * 데이터베이스 구조:
+ * - user_id: 사용자 ID
+ * - category_id: 카테고리 ID (숫자)
+ * - created_at: 생성 시간
+ * 
+ * @property category_ids - 카테고리 ID 배열 (데이터베이스의 category_id, 선택사항)
+ * @property category_codes - 카테고리 코드 배열 (서버에서 변환된 경우, 선택사항)
+ * @property categories - 카테고리 상세 정보 배열 (category_id와 category_code 포함, 선택사항)
+ * 
+ * 참고: 
+ * - 서버가 category_codes를 반환하면 그대로 사용 (기존 방식)
+ * - 서버가 category_ids만 반환하면 categories 배열에서 category_code 찾기
+ * - 서버가 categories 배열을 반환하면 각 항목의 category_code 사용
  */
 export interface UserInterestsResponse {
-  category_codes: string[];
+  category_ids?: number[];  // 데이터베이스의 category_id 배열
+  category_codes?: string[]; // 카테고리 코드 배열 (cs.AI, cs.CL 등)
+  categories?: CategoryInfo[]; // 카테고리 상세 정보 (category_id와 category_code 포함)
 }
 
 /**

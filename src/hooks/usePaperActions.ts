@@ -10,11 +10,12 @@ export function usePaperActions() {
   const deleteBookmarkMutation = useDeleteBookmarkMutation();
   const { data: bookmarks = [] } = useBookmarksQuery();
 
-  const handlePaperClick = (paperId: number) => {
+  const handlePaperClick = (paperId: number | string) => {
     if (!isLoggedIn) {
       goToLogin();
       return;
     }
+    // 문자열 ID 그대로 사용 (API 명세에 맞춤)
     goToPaper(paperId);
   };
 

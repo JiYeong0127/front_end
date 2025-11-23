@@ -29,7 +29,7 @@ export interface PaperListCardProps {
  * 통합 PaperCard 컴포넌트를 위한 기본 Props
  */
 export interface BasePaperCardProps {
-  paperId: number;
+  paperId: number | string; // 데이터베이스는 문자열, 기존 호환성을 위해 number도 허용
   title: string;
   authors: string | string[];
   publisher?: string;
@@ -39,10 +39,11 @@ export interface BasePaperCardProps {
   translatedSummary?: string;
   externalUrl?: string;
   update_count?: number; // 업데이트 횟수
+  update_date?: string; // 업데이트 날짜 (데이터베이스 스키마에 맞춤)
   categories?: string[]; // 카테고리 배열
   isBookmarked?: boolean;
-  onToggleBookmark?: (paperId: number) => void;
-  onPaperClick?: (paperId: number) => void;
+  onToggleBookmark?: (paperId: number | string) => void;
+  onPaperClick?: (paperId: number | string) => void;
 }
 
 /**

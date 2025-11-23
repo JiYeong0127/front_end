@@ -17,7 +17,7 @@ export function useNavigation() {
     goToMyPage: () => navigate('/mypage'),
     goToRecentPapers: () => navigate('/recent'),
     goToMyLibrary: () => navigate('/library'),
-    goToPaper: (paperId: number) => navigate(`/paper/${paperId}`),
+    goToPaper: (paperId: string | number) => navigate(`/paper/${paperId}`),
     goToSearch: (query: string) => navigate(`/search?q=${encodeURIComponent(query)}`),
     goBack: () => navigate(-1),
   };

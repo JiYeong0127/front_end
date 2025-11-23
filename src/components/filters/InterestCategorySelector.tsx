@@ -1,9 +1,9 @@
 import { useState, useEffect } from 'react';
-import { Heart, X, Loader2, AlertTriangle } from 'lucide-react';
+import { Heart, X, Loader2, AlertTriangle, Database } from 'lucide-react';
 import { Card, CardContent } from '../ui/card';
 import { Button } from '../ui/button';
 import { toast } from 'sonner';
-import { addUserInterests, fetchUserInterests } from '../../lib/api';
+import { useInterestCategories, useAddInterestCategories, useDeleteInterestCategory } from '../../hooks/api/useInterestCategories';
 
 interface SubCategory {
   name: string;
@@ -134,9 +134,15 @@ const MAX_SELECTIONS = 5;
 export function InterestCategorySelector() {
   const [selectedCategories, setSelectedCategories] = useState<SubCategory[]>([]);
   const [expandedCategory, setExpandedCategory] = useState<string | null>('ai-learning');
-  const [isLoading, setIsLoading] = useState(false);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
-  const [isLoadingInterests, setIsLoadingInterests] = useState(true);
+  
+  // 초기 서버에서 받은 카테고리 코드 저장 (삭제 추적용)
+  const [initialCategoryCodes, setInitialCategoryCodes] = useState<string[]>([]);
+  
+  // React Query 훅 사용
+  const { data: interestCategoriesData, isLoading: isLoadingInterests } = useInterestCategories();
+  const addMutation = useAddInterestCategories();
+  const deleteMutation = useDeleteInterestCategory();
 
   // 카테고리 코드를 SubCategory 객체로 변환하는 헬퍼 함수
   const mapCategoryCodesToSubCategories = (categoryCodes: string[]): SubCategory[] => {
@@ -156,29 +162,40 @@ export function InterestCategorySelector() {
     return mappedCategories;
   };
 
-  // 컴포넌트 마운트 시 관심 카테고리 조회
+  // React Query 데이터를 사용하여 선택된 카테고리 설정
   useEffect(() => {
-    const loadUserInterests = async () => {
-      try {
-        setIsLoadingInterests(true);
-        const response = await fetchUserInterests();
-        const categoryCodes = response.category_codes || [];
-        
-        // 카테고리 코드를 SubCategory 객체로 변환
-        const mappedCategories = mapCategoryCodesToSubCategories(categoryCodes);
-        
-        setSelectedCategories(mappedCategories);
-        setHasUnsavedChanges(false); // 서버와 동기화된 상태
-      } catch (error) {
-        const errorMessage = error instanceof Error ? error.message : '관심 카테고리를 불러오는 중 오류가 발생했습니다.';
-        toast.error(errorMessage);
-      } finally {
-        setIsLoadingInterests(false);
+    if (interestCategoriesData) {
+      let categoryCodes: string[] = [];
+      
+      // 1. category_codes가 있으면 그대로 사용 (기존 방식)
+      if (interestCategoriesData.category_codes && interestCategoriesData.category_codes.length > 0) {
+        categoryCodes = interestCategoriesData.category_codes;
       }
-    };
-
-    loadUserInterests();
-  }, []);
+      // 2. categories 배열이 있으면 각 항목의 category_code 추출
+      else if (interestCategoriesData.categories && interestCategoriesData.categories.length > 0) {
+        categoryCodes = interestCategoriesData.categories
+          .map(cat => cat.category_code)
+          .filter((code): code is string => !!code);
+      }
+      // 3. category_ids만 있는 경우 (서버에서 변환 정보 제공 필요)
+      else if (interestCategoriesData.category_ids && interestCategoriesData.category_ids.length > 0) {
+        // 서버에서 카테고리 정보를 함께 반환하지 않는 경우
+        // 이 경우 서버 API가 카테고리 정보를 함께 반환하도록 수정 필요
+        console.warn('category_ids만 반환되었습니다. 서버에서 category_codes 또는 categories 정보를 함께 반환해야 합니다.');
+        // 일단 빈 배열로 처리 (서버 수정 필요)
+        categoryCodes = [];
+      }
+      
+      // 초기 카테고리 코드 저장 (삭제 추적용)
+      setInitialCategoryCodes(categoryCodes);
+      
+      // 카테고리 코드를 SubCategory 객체로 변환
+      const mappedCategories = mapCategoryCodesToSubCategories(categoryCodes);
+      
+      setSelectedCategories(mappedCategories);
+      setHasUnsavedChanges(false); // 서버와 동기화된 상태
+    }
+  }, [interestCategoriesData]);
 
   const handleCategoryClick = (subCategory: SubCategory) => {
     const isAlreadySelected = selectedCategories.some(cat => cat.code === subCategory.code);
@@ -215,17 +232,50 @@ export function InterestCategorySelector() {
       return;
     }
 
-    setIsLoading(true);
+    const currentCategoryCodes = selectedCategories.map(cat => cat.code);
+    
+    // 삭제된 카테고리 찾기 (초기에는 있었지만 현재는 없는 것)
+    const deletedCodes = initialCategoryCodes.filter(
+      code => !currentCategoryCodes.includes(code)
+    );
+    
+    // 추가된 카테고리 찾기 (초기에는 없었지만 현재는 있는 것)
+    const addedCodes = currentCategoryCodes.filter(
+      code => !initialCategoryCodes.includes(code)
+    );
+
     try {
-      const categoryCodes = selectedCategories.map(cat => cat.code);
-      await addUserInterests(categoryCodes);
+      // 1. 삭제된 카테고리들을 서버에서 삭제
+      if (deletedCodes.length > 0) {
+        await Promise.all(
+          deletedCodes.map(code => 
+            new Promise<void>((resolve, reject) => {
+              deleteMutation.mutate(code, {
+                onSuccess: () => resolve(),
+                onError: (error) => reject(error),
+              });
+            })
+          )
+        );
+      }
+
+      // 2. 추가된 카테고리들을 서버에 추가
+      if (addedCodes.length > 0) {
+        await new Promise<void>((resolve, reject) => {
+          addMutation.mutate(addedCodes, {
+            onSuccess: () => resolve(),
+            onError: (error) => reject(error),
+          });
+        });
+      }
+
+      // 3. 성공 시 초기 카테고리 코드 업데이트
+      setInitialCategoryCodes(currentCategoryCodes);
       setHasUnsavedChanges(false);
       toast.success('관심 카테고리가 저장되었습니다.');
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : '관심 카테고리 저장 중 오류가 발생했습니다.';
       toast.error(errorMessage);
-    } finally {
-      setIsLoading(false);
     }
   };
 
@@ -263,6 +313,73 @@ export function InterestCategorySelector() {
             </p>
           </div>
         )}
+
+        {/* 저장된 관심 카테고리 표시 (데이터베이스에서 조회한 데이터) */}
+        {(() => {
+          // 서버에서 조회한 카테고리 코드 추출
+          let savedCategoryCodes: string[] = [];
+          
+          if (interestCategoriesData) {
+            if (interestCategoriesData.category_codes && interestCategoriesData.category_codes.length > 0) {
+              savedCategoryCodes = interestCategoriesData.category_codes;
+            } else if (interestCategoriesData.categories && interestCategoriesData.categories.length > 0) {
+              savedCategoryCodes = interestCategoriesData.categories
+                .map(cat => cat.category_code)
+                .filter((code): code is string => !!code);
+            }
+          }
+          
+          const savedCategories = mapCategoryCodesToSubCategories(savedCategoryCodes);
+          
+          return (
+            <>
+              {isLoadingInterests ? (
+                <div className="mb-6 p-4 bg-gradient-to-r from-green-50 to-emerald-50 rounded-lg border border-green-100">
+                  <div className="flex items-center gap-2 mb-3">
+                    <Database className="w-4 h-4" style={{ color: '#10b981' }} />
+                    <p className="text-sm font-semibold" style={{ color: '#059669' }}>💾 저장된 관심 카테고리</p>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Loader2 className="w-4 h-4 animate-spin" style={{ color: '#059669' }} />
+                    <span className="text-sm text-gray-600">데이터베이스에서 불러오는 중...</span>
+                  </div>
+                </div>
+              ) : savedCategories.length > 0 ? (
+                <div className="mb-6 p-4 bg-gradient-to-r from-green-50 to-emerald-50 rounded-lg border border-green-100">
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="flex items-center gap-2">
+                      <Database className="w-4 h-4" style={{ color: '#10b981' }} />
+                      <p className="text-sm font-semibold" style={{ color: '#059669' }}>💾 저장된 관심 카테고리</p>
+                    </div>
+                    <span className="text-xs text-gray-500">{savedCategories.length}개</span>
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    {savedCategories.map((category) => (
+                      <div
+                        key={category.code}
+                        className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-sm shadow-sm"
+                        style={{ 
+                          backgroundColor: '#10b981', 
+                          color: '#ffffff',
+                        }}
+                      >
+                        <span>{category.name}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ) : (
+                <div className="mb-6 p-4 bg-gradient-to-r from-gray-50 to-slate-50 rounded-lg border border-gray-200">
+                  <div className="flex items-center gap-2 mb-2">
+                    <Database className="w-4 h-4 text-gray-400" />
+                    <p className="text-sm font-semibold text-gray-600">💾 저장된 관심 카테고리</p>
+                  </div>
+                  <p className="text-sm text-gray-500">저장된 관심 카테고리가 없습니다.</p>
+                </div>
+              )}
+            </>
+          );
+        })()}
 
         {/* 선택된 카테고리 표시 */}
         {isLoadingInterests ? (
@@ -391,9 +508,9 @@ export function InterestCategorySelector() {
               backgroundColor: hasUnsavedChanges ? '#f59e0b' : '#215285',
               boxShadow: hasUnsavedChanges ? '0 0 0 3px rgba(245, 158, 11, 0.2)' : 'none',
             }}
-            disabled={selectedCategories.length === 0 || isLoading}
+            disabled={selectedCategories.length === 0 || addMutation.isPending || deleteMutation.isPending}
           >
-            {isLoading ? (
+            {addMutation.isPending || deleteMutation.isPending ? (
               <>
                 <Loader2 className="w-4 h-4 mr-2 animate-spin" />
                 저장 중...

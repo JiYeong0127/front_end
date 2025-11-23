@@ -95,7 +95,7 @@ export function HeroSection({ onSearch }: HeroSectionProps) {
                 {/* Search Button - inside input */}
                 <button
                   onClick={handleSearch}
-                  className="absolute right-2 top-1/2 -translate-y-1/2 px-5 py-3 rounded-md transition-colors text-white flex items-center gap-2 text-base md:text-lg"
+                  className="absolute right-2 top-1/2 -translate-y-1/2 px-5 py-3 rounded-md transition-colors text-white flex items-center gap-2 text-base md:text-lg cursor-pointer"
                   style={{ backgroundColor: "#4FA3D1" }}
                   onMouseEnter={(e) => e.currentTarget.style.backgroundColor = "#3d8ab8"}
                   onMouseLeave={(e) => e.currentTarget.style.backgroundColor = "#4FA3D1"}

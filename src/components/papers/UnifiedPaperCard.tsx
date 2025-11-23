@@ -30,6 +30,7 @@ export function UnifiedPaperCard({
   translatedSummary,
   externalUrl,
   update_count,
+  update_date,
   categories,
   isBookmarked = false,
   onToggleBookmark,
@@ -119,12 +120,20 @@ export function UnifiedPaperCard({
                 <span>{authorsText}</span>
               </div>
 
-              {/* Meta Info: update_count and categories */}
+              {/* Meta Info: update_count/update_date and categories */}
               <div className="flex flex-wrap items-center gap-3">
-                {/* Update Count */}
-                {update_count !== undefined && update_count !== null && (
+                {/* Update Count or Update Date */}
+                {update_count !== undefined && update_count !== null ? (
                   <span className="text-sm text-gray-600">
                     업데이트: {update_count}회
+                  </span>
+                ) : update_date ? (
+                  <span className="text-sm text-gray-600">
+                    업데이트: {update_date}
+                  </span>
+                ) : (
+                  <span className="text-sm text-gray-400">
+                    업데이트: -
                   </span>
                 )}
 

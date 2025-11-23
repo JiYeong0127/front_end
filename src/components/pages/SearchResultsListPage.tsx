@@ -5,7 +5,6 @@ import { Header } from '../layout/Header';
 import { SearchHeader } from '../layout/SearchHeader';
 import { UnifiedPaperCard } from '../papers/UnifiedPaperCard';
 import { CategoryFilter, getCategoryNameByCode } from '../filters/CategoryFilter';
-import { YearFilter } from '../filters/YearFilter';
 import { Footer } from '../layout/Footer';
 import { ScrollToTopButton } from '../layout/ScrollToTopButton';
 import {
@@ -41,7 +40,6 @@ export function SearchResultsListPage() {
     return pageParam ? parseInt(pageParam, 10) : 1;
   }, [pageParam]);
   
-  const [yearRange, setYearRange] = useState<[number, number]>([2015, 2025]);
   const [elapsedTime, setElapsedTime] = useState(0);
   const { handlePaperClick } = usePaperActions();
   const queryClient = useQueryClient();
@@ -85,13 +83,58 @@ export function SearchResultsListPage() {
   const papers = searchData?.papers || [];
   const totalPages = searchData?.total ? Math.ceil(searchData.total / (searchData.pageSize || 10)) : 0;
   
-  // 연도 필터는 클라이언트 사이드로 유지 (서버 API에 없음)
-  const filteredPapers = papers.filter(paper => {
-    const paperYear = typeof paper.year === 'string' ? parseInt(paper.year) : paper.year;
-    return paperYear >= yearRange[0] && paperYear <= yearRange[1];
-  });
+  // 디버깅: 서버 응답 데이터 확인
+  useEffect(() => {
+    if (searchData) {
+      console.log('=== 검색 결과 디버깅 ===');
+      console.log('전체 응답 데이터:', searchData);
+      console.log('total:', searchData.total);
+      console.log('page:', searchData.page);
+      console.log('pageSize:', searchData.pageSize);
+      console.log('papers 배열:', papers);
+      console.log('papers 배열 길이:', papers.length);
+      if (papers.length > 0) {
+        console.log('첫 번째 논문:', papers[0]);
+        console.log('첫 번째 논문 키들:', Object.keys(papers[0]));
+      }
+      console.log('========================');
+    }
+  }, [searchData, papers]);
+  
+  // 연도 필터 임시 제거 (문제 진단용)
+  // TODO: 연도 필터가 필요한 경우 아래 주석을 해제하고 로직 수정
+  // const filteredPapers = papers.filter(paper => {
+  //   // year가 없으면 필터링에서 제외 (표시)
+  //   if (!paper.year) {
+  //     return true;
+  //   }
+  //   
+  //   const paperYear = typeof paper.year === 'string' ? parseInt(paper.year) : paper.year;
+  //   const numericYear = Number(paperYear);
+  //   
+  //   // 유효한 숫자가 아니면 필터링에서 제외 (표시)
+  //   if (isNaN(numericYear)) {
+  //     return true;
+  //   }
+  //   
+  //   // 유효한 숫자면 범위 체크
+  //   return numericYear >= yearRange[0] && numericYear <= yearRange[1];
+  // });
+  
+  // 연도 필터 제거: 모든 논문 표시
+  const filteredPapers = papers;
   
   const currentPapers = filteredPapers;
+  
+  // 디버깅: 필터링 후 데이터 확인
+  useEffect(() => {
+    if (!isLoading && !isError) {
+      console.log('=== 필터링 후 데이터 ===');
+      console.log('currentPapers 길이:', currentPapers.length);
+      console.log('currentPapers:', currentPapers);
+      console.log('======================');
+    }
+  }, [currentPapers, isLoading, isError]);
 
   const handleCategorySelect = (categoryCode: string) => {
     const newCategories = selectedCategories.includes(categoryCode)
@@ -129,17 +172,11 @@ export function SearchResultsListPage() {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  const handleYearRangeChange = (range: [number, number]) => {
-    setYearRange(range);
-    setCurrentPage(1);
-  };
-
   const handleClearAllFilters = () => {
     const newSearchParams = new URLSearchParams(searchParams);
     newSearchParams.delete('categories');
     newSearchParams.set('page', '1');
     setSearchParams(newSearchParams);
-    setYearRange([2015, 2025]);
   };
 
   const handleSearch = (query: string) => {
@@ -157,9 +194,6 @@ export function SearchResultsListPage() {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-
-  // 연도 필터 활성화 여부 확인
-  const isYearFilterActive = yearRange[0] !== 2015 || yearRange[1] !== 2025;
 
   // 페이지 번호 생성 함수
   const getPageNumbers = () => {
@@ -214,12 +248,6 @@ export function SearchResultsListPage() {
                     onCategorySelect={handleCategorySelect}
                   />
                 </div>
-                
-                {/* 연도 필터 */}
-                <YearFilter 
-                  yearRange={yearRange}
-                  onYearRangeChange={handleYearRangeChange}
-                />
               </div>
             </div>
 
@@ -292,7 +320,7 @@ export function SearchResultsListPage() {
                     </p>
                     
                     {/* 선택된 필터 표시 */}
-                    {(selectedCategories.length > 0 || isYearFilterActive) && (
+                    {selectedCategories.length > 0 && (
                       <div className="mt-3 flex items-center gap-2 flex-wrap">
                         <span className="text-sm text-gray-500">필터:</span>
                         
@@ -318,28 +346,7 @@ export function SearchResultsListPage() {
                           </button>
                         ))}
                         
-                        {/* 연도 필터 */}
-                        {isYearFilterActive && (
-                          <button
-                            onClick={() => setYearRange([2015, 2025])}
-                            className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-sm transition-colors"
-                            style={{ 
-                              backgroundColor: '#EAF4FA', 
-                              color: '#4FA3D1',
-                            }}
-                            onMouseEnter={(e) => {
-                              e.currentTarget.style.backgroundColor = '#D5E9F5';
-                            }}
-                            onMouseLeave={(e) => {
-                              e.currentTarget.style.backgroundColor = '#EAF4FA';
-                            }}
-                          >
-                            {yearRange[0]}년 ~ {yearRange[1]}년
-                            <X className="h-3 w-3" />
-                          </button>
-                        )}
-                        
-                        {(selectedCategories.length > 1 || (selectedCategories.length > 0 && isYearFilterActive)) && (
+                        {selectedCategories.length > 1 && (
                           <button
                             onClick={handleClearAllFilters}
                             className="text-sm text-gray-500 hover:text-[#4FA3D1] underline"
@@ -354,18 +361,25 @@ export function SearchResultsListPage() {
                   {/* Paper List */}
                   <div className="space-y-4 mb-12">
                     {currentPapers.length > 0 ? (
-                      currentPapers.map((paper) => (
-                        <UnifiedPaperCard
-                          key={paper.id}
-                          paperId={paper.id}
-                          title={paper.title}
-                          authors={Array.isArray(paper.authors) ? paper.authors.join(', ') : paper.authors}
-                          update_count={paper.update_count}
-                          categories={paper.categories}
-                          variant="search"
-                          onPaperClick={handlePaperClick}
-                        />
-                      ))
+                      currentPapers.map((paper) => {
+                        // 디버깅: 각 논문 렌더링 확인
+                        if (process.env.NODE_ENV === 'development') {
+                          console.log('논문 렌더링:', paper.id, paper.title);
+                        }
+                        return (
+                          <UnifiedPaperCard
+                            key={paper.id}
+                            paperId={paper.id}
+                            title={paper.title}
+                            authors={Array.isArray(paper.authors) ? paper.authors.join(', ') : paper.authors}
+                            update_count={paper.update_count}
+                            update_date={paper.update_date}
+                            categories={paper.categories}
+                            variant="search"
+                            onPaperClick={handlePaperClick}
+                          />
+                        );
+                      })
                     ) : (
                       <div className="text-center py-12">
                         <p className="text-gray-500 text-lg">

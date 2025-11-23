@@ -5,3 +5,4 @@ export * from './useRegister';
 export * from './useUsernameExists';
 export * from './useMyProfile';
 export * from './useLogout';
+export * from './useInterestCategories';

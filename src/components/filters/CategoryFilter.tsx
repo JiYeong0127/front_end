@@ -5,6 +5,7 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription, SheetTr
 import { ScrollArea } from '../ui/scroll-area';
 import { Card, CardContent } from '../ui/card';
 import { Checkbox } from '../ui/checkbox';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '../ui/tooltip';
 
 interface SubCategory {
   name: string;
@@ -165,39 +166,50 @@ function CategoryTreeContent({ selectedCategories = [], onCategorySelect }: Cate
             {/* 하위 카테고리 */}
             {isExpanded && (
               <div className="ml-6 mt-1 space-y-1 animate-in fade-in slide-in-from-top-1 duration-200">
-                {category.subCategories.map((subCategory) => {
-                  const isSelected = selectedCategories.includes(subCategory.code);
-                  return (
-                    <button
-                      key={subCategory.code}
-                      onClick={() => onCategorySelect(subCategory.code)}
-                      className="w-full flex items-center gap-2 px-3 py-2 rounded-md transition-colors text-sm"
-                      style={{
-                        backgroundColor: isSelected ? '#EAF4FA' : 'transparent',
-                        color: isSelected ? '#4FA3D1' : '#333',
-                      }}
-                      onMouseEnter={(e) => {
-                        if (!isSelected) {
-                          e.currentTarget.style.backgroundColor = '#f3f4f6';
-                        }
-                      }}
-                      onMouseLeave={(e) => {
-                        if (!isSelected) {
-                          e.currentTarget.style.backgroundColor = 'transparent';
-                        }
-                      }}
-                    >
-                      <Checkbox 
-                        checked={isSelected}
-                        className="pointer-events-none"
-                        style={{
-                          borderColor: isSelected ? '#4FA3D1' : '#cbd5e1',
-                        }}
-                      />
-                      <span className="flex-1">{subCategory.name}</span>
-                    </button>
-                  );
-                })}
+                <TooltipProvider>
+                  {category.subCategories.map((subCategory) => {
+                    const isSelected = selectedCategories.includes(subCategory.code);
+                    return (
+                      <Tooltip key={subCategory.code}>
+                        <TooltipTrigger asChild>
+                          <button
+                            onClick={() => onCategorySelect(subCategory.code)}
+                            className="w-full flex items-center gap-2 px-3 py-2 rounded-md transition-colors text-sm"
+                            style={{
+                              backgroundColor: isSelected ? '#EAF4FA' : 'transparent',
+                              color: isSelected ? '#4FA3D1' : '#333',
+                            }}
+                            onMouseEnter={(e) => {
+                              if (!isSelected) {
+                                e.currentTarget.style.backgroundColor = '#f3f4f6';
+                              }
+                            }}
+                            onMouseLeave={(e) => {
+                              if (!isSelected) {
+                                e.currentTarget.style.backgroundColor = 'transparent';
+                              }
+                            }}
+                          >
+                            <Checkbox 
+                              checked={isSelected}
+                              className="pointer-events-none"
+                              style={{
+                                borderColor: isSelected ? '#4FA3D1' : '#cbd5e1',
+                              }}
+                            />
+                            <span className="flex-1">{subCategory.name}</span>
+                          </button>
+                        </TooltipTrigger>
+                        <TooltipContent
+                          side="right"
+                          className="bg-gray-800 text-white border-none"
+                        >
+                          <p>{subCategory.code}</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    );
+                  })}
+                </TooltipProvider>
               </div>
             )}
           </div>
