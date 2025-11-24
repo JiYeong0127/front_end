@@ -415,7 +415,15 @@ export interface CategoryInfo {
   name?: string;
 }
 
+// items 배열의 각 항목 타입
+export interface InterestCategoryItem {
+  code: string;
+  name_ko: string | null;
+  name_en: string;
+}
+
 export interface UserInterestsResponse {
+  items?: InterestCategoryItem[];  // 서버 응답 형식: { items: [...] }
   category_ids?: number[];
   category_codes?: string[];
   categories?: CategoryInfo[];

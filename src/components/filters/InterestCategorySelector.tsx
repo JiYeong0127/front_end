@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Heart, X, Loader2, AlertTriangle, Database } from 'lucide-react';
+import { Heart, X, Loader2 } from 'lucide-react';
 import { Card, CardContent } from '../ui/card';
 import { Button } from '../ui/button';
 import { toast } from 'sonner';
@@ -167,17 +167,23 @@ export function InterestCategorySelector() {
     if (interestCategoriesData) {
       let categoryCodes: string[] = [];
       
-      // 1. category_codes가 있으면 그대로 사용 (기존 방식)
-      if (interestCategoriesData.category_codes && interestCategoriesData.category_codes.length > 0) {
+      // 1. items 배열이 있으면 각 항목의 code 추출 (서버 응답 형식)
+      if (interestCategoriesData.items && interestCategoriesData.items.length > 0) {
+        categoryCodes = interestCategoriesData.items
+          .map(item => item.code)
+          .filter((code): code is string => !!code);
+      }
+      // 2. category_codes가 있으면 그대로 사용 (기존 방식)
+      else if (interestCategoriesData.category_codes && interestCategoriesData.category_codes.length > 0) {
         categoryCodes = interestCategoriesData.category_codes;
       }
-      // 2. categories 배열이 있으면 각 항목의 category_code 추출
+      // 3. categories 배열이 있으면 각 항목의 category_code 추출
       else if (interestCategoriesData.categories && interestCategoriesData.categories.length > 0) {
         categoryCodes = interestCategoriesData.categories
           .map(cat => cat.category_code)
           .filter((code): code is string => !!code);
       }
-      // 3. category_ids만 있는 경우 (서버에서 변환 정보 제공 필요)
+      // 4. category_ids만 있는 경우 (서버에서 변환 정보 제공 필요)
       else if (interestCategoriesData.category_ids && interestCategoriesData.category_ids.length > 0) {
         // 서버에서 카테고리 정보를 함께 반환하지 않는 경우
         // 이 경우 서버 API가 카테고리 정보를 함께 반환하도록 수정 필요
@@ -314,108 +320,49 @@ export function InterestCategorySelector() {
           </div>
         )}
 
-        {/* 저장된 관심 카테고리 표시 (데이터베이스에서 조회한 데이터) */}
-        {(() => {
-          // 서버에서 조회한 카테고리 코드 추출
-          let savedCategoryCodes: string[] = [];
-          
-          if (interestCategoriesData) {
-            if (interestCategoriesData.category_codes && interestCategoriesData.category_codes.length > 0) {
-              savedCategoryCodes = interestCategoriesData.category_codes;
-            } else if (interestCategoriesData.categories && interestCategoriesData.categories.length > 0) {
-              savedCategoryCodes = interestCategoriesData.categories
-                .map(cat => cat.category_code)
-                .filter((code): code is string => !!code);
-            }
-          }
-          
-          const savedCategories = mapCategoryCodesToSubCategories(savedCategoryCodes);
-          
-          return (
-            <>
-              {isLoadingInterests ? (
-                <div className="mb-6 p-4 bg-gradient-to-r from-green-50 to-emerald-50 rounded-lg border border-green-100">
-                  <div className="flex items-center gap-2 mb-3">
-                    <Database className="w-4 h-4" style={{ color: '#10b981' }} />
-                    <p className="text-sm font-semibold" style={{ color: '#059669' }}>💾 저장된 관심 카테고리</p>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Loader2 className="w-4 h-4 animate-spin" style={{ color: '#059669' }} />
-                    <span className="text-sm text-gray-600">데이터베이스에서 불러오는 중...</span>
-                  </div>
-                </div>
-              ) : savedCategories.length > 0 ? (
-                <div className="mb-6 p-4 bg-gradient-to-r from-green-50 to-emerald-50 rounded-lg border border-green-100">
-                  <div className="flex items-center justify-between mb-3">
-                    <div className="flex items-center gap-2">
-                      <Database className="w-4 h-4" style={{ color: '#10b981' }} />
-                      <p className="text-sm font-semibold" style={{ color: '#059669' }}>💾 저장된 관심 카테고리</p>
-                    </div>
-                    <span className="text-xs text-gray-500">{savedCategories.length}개</span>
-                  </div>
-                  <div className="flex flex-wrap gap-2">
-                    {savedCategories.map((category) => (
-                      <div
-                        key={category.code}
-                        className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-sm shadow-sm"
-                        style={{ 
-                          backgroundColor: '#10b981', 
-                          color: '#ffffff',
-                        }}
-                      >
-                        <span>{category.name}</span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              ) : (
-                <div className="mb-6 p-4 bg-gradient-to-r from-gray-50 to-slate-50 rounded-lg border border-gray-200">
-                  <div className="flex items-center gap-2 mb-2">
-                    <Database className="w-4 h-4 text-gray-400" />
-                    <p className="text-sm font-semibold text-gray-600">💾 저장된 관심 카테고리</p>
-                  </div>
-                  <p className="text-sm text-gray-500">저장된 관심 카테고리가 없습니다.</p>
-                </div>
-              )}
-            </>
-          );
-        })()}
-
         {/* 선택된 카테고리 표시 */}
         {isLoadingInterests ? (
           <div className="mb-6 p-4 bg-gradient-to-r from-blue-50 to-cyan-50 rounded-lg border border-blue-100">
-            <p className="text-sm mb-3" style={{ color: '#215285' }}>✓ 선택한 카테고리</p>
+            <p className="text-sm mb-3" style={{ color: '#215285' }}>
+              ✓ 선택한 카테고리 ({selectedCategories.length} / {MAX_SELECTIONS})
+            </p>
             <div className="flex items-center gap-2">
               <Loader2 className="w-4 h-4 animate-spin" style={{ color: '#215285' }} />
               <span className="text-sm text-gray-600">관심 카테고리를 불러오는 중...</span>
             </div>
           </div>
-        ) : selectedCategories.length > 0 ? (
+        ) : (
           <div className="mb-6 p-4 bg-gradient-to-r from-blue-50 to-cyan-50 rounded-lg border border-blue-100">
-            <p className="text-sm mb-3" style={{ color: '#215285' }}>✓ 선택한 카테고리</p>
-            <div className="flex flex-wrap gap-2">
-              {selectedCategories.map((category) => (
-                <div
-                  key={category.code}
-                  className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-sm shadow-sm hover:shadow-md transition-all"
-                  style={{ 
-                    backgroundColor: '#215285', 
-                    color: '#ffffff',
-                  }}
-                >
-                  <span>{category.name}</span>
-                  <button
-                    onClick={() => handleRemoveCategory(category.code)}
-                    className="hover:bg-white/20 rounded-full p-0.5 transition-colors"
-                    aria-label="삭제"
+            <p className="text-sm mb-3" style={{ color: '#215285' }}>
+              ✓ 선택한 카테고리 ({selectedCategories.length} / {MAX_SELECTIONS})
+            </p>
+            {selectedCategories.length > 0 ? (
+              <div className="flex flex-wrap gap-2">
+                {selectedCategories.map((category) => (
+                  <div
+                    key={category.code}
+                    className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-sm shadow-sm hover:shadow-md transition-all"
+                    style={{ 
+                      backgroundColor: '#215285', 
+                      color: '#ffffff',
+                    }}
                   >
-                    <X className="w-3.5 h-3.5" />
-                  </button>
-                </div>
-              ))}
-            </div>
+                    <span>{category.name}</span>
+                    <button
+                      onClick={() => handleRemoveCategory(category.code)}
+                      className="hover:bg-white/20 rounded-full p-0.5 transition-colors"
+                      aria-label="삭제"
+                    >
+                      <X className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="text-sm text-gray-500">선택한 카테고리가 없습니다.</p>
+            )}
           </div>
-        ) : null}
+        )}
 
         {/* 1차 카테고리 - 가로 정렬 버튼형 */}
         <div className="mb-6">
