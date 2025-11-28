@@ -3,15 +3,7 @@ import { Header } from '../layout/Header';
 import { Footer } from '../layout/Footer';
 import { Card, CardContent } from '../ui/card';
 import { Bookmark, ArrowUpDown, Loader2 } from 'lucide-react';
-import {
-  Pagination,
-  PaginationContent,
-  PaginationEllipsis,
-  PaginationItem,
-  PaginationLink,
-  PaginationNext,
-  PaginationPrevious,
-} from '../ui/pagination';
+import { PaginationControls } from '../ui/PaginationControls';
 import { ScrollToTopButton } from '../layout/ScrollToTopButton';
 import {
   Select,
@@ -114,42 +106,6 @@ export function MyLibraryPage() {
     return sortedPapers.slice(startIndex, startIndex + itemsPerPage);
   }, [sortedPapers, currentPage, itemsPerPage]);
 
-  // 페이지 번호 생성 함수
-  const getPageNumbers = () => {
-    const pages: (number | 'ellipsis')[] = [];
-    const maxVisible = 5;
-    
-    if (totalPages <= maxVisible) {
-      for (let i = 1; i <= totalPages; i++) {
-        pages.push(i);
-      }
-    } else {
-      if (currentPage <= 3) {
-        for (let i = 1; i <= 4; i++) {
-          pages.push(i);
-        }
-        pages.push('ellipsis');
-        pages.push(totalPages);
-      } else if (currentPage >= totalPages - 2) {
-        pages.push(1);
-        pages.push('ellipsis');
-        for (let i = totalPages - 3; i <= totalPages; i++) {
-          pages.push(i);
-        }
-      } else {
-        pages.push(1);
-        pages.push('ellipsis');
-        for (let i = currentPage - 1; i <= currentPage + 1; i++) {
-          pages.push(i);
-        }
-        pages.push('ellipsis');
-        pages.push(totalPages);
-      }
-    }
-    
-    return pages;
-  };
-
   const handlePageChange = (page: number) => {
     setCurrentPage(page);
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -244,48 +200,11 @@ export function MyLibraryPage() {
                   </div>
 
                   {/* Pagination */}
-                  {totalPages > 1 && (
-                    <div className="flex justify-center">
-                      <Pagination>
-                        <PaginationContent className="flex-wrap gap-1">
-                          <PaginationItem>
-                            <PaginationPrevious 
-                              onClick={() => handlePageChange(Math.max(1, currentPage - 1))}
-                              className={currentPage === 1 ? 'pointer-events-none opacity-50' : 'cursor-pointer'}
-                            />
-                          </PaginationItem>
-                          
-                          {getPageNumbers().map((page, index) => (
-                            <PaginationItem key={index}>
-                              {page === 'ellipsis' ? (
-                                <PaginationEllipsis />
-                              ) : (
-                                <PaginationLink
-                                  onClick={() => handlePageChange(page as number)}
-                                  isActive={currentPage === page}
-                                  className="cursor-pointer"
-                                  style={
-                                    currentPage === page
-                                      ? { backgroundColor: '#4FA3D1', color: 'white', borderColor: '#4FA3D1' }
-                                      : {}
-                                  }
-                                >
-                                  {page}
-                                </PaginationLink>
-                              )}
-                            </PaginationItem>
-                          ))}
-                          
-                          <PaginationItem>
-                            <PaginationNext 
-                              onClick={() => handlePageChange(Math.min(totalPages, currentPage + 1))}
-                              className={currentPage === totalPages ? 'pointer-events-none opacity-50' : 'cursor-pointer'}
-                            />
-                          </PaginationItem>
-                        </PaginationContent>
-                      </Pagination>
-                    </div>
-                  )}
+                  <PaginationControls
+                    currentPage={currentPage}
+                    totalPages={totalPages}
+                    onPageChange={handlePageChange}
+                  />
                 </>
               ) : (
                 <Card>
