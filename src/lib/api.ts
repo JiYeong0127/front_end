@@ -94,6 +94,7 @@ export const endpoints = {
   },
   bookmarks: '/bookmarks',
   userInterests: '/user-interests',
+  recommendations: '/recommendations',
 };
 
 // 인증 관련 API 함수
@@ -203,6 +204,92 @@ export const getPaperDetail = (paperId: string | number): Promise<Paper> => {
 // 논문 상세 조회 별칭
 export const getPaperById = (id: string): Promise<Paper> => {
   return getPaperDetail(id);
+};
+
+// 추천 논문 조회
+export const getRecommendations = (topK: number = 6): Promise<Paper[]> => {
+  type ServerResponse = {
+    // 추천 API 전용 필드
+    recommendations?: any[];
+    // 기타 리스트형 응답 필드
+    papers?: Paper[];
+    results?: Paper[];
+    data?: Paper[];
+    items?: Paper[];
+  };
+
+  return api.get<ServerResponse | Paper[]>(endpoints.recommendations, {
+    params: { top_k: topK },
+    timeout: 420000, // 추천 논문 조회는 최대 7분까지 대기
+  }).then(res => {
+    const response = res.data;
+    
+    // 응답이 배열인 경우 (Paper[]라고 가정)
+    if (Array.isArray(response)) {
+      return response as Paper[];
+    }
+    
+    // 응답이 객체인 경우
+    if (response && typeof response === 'object') {
+      const serverData = response as ServerResponse;
+
+      // 1) 추천 전용 구조: { recommendations: [...] }
+      if (Array.isArray(serverData.recommendations)) {
+        return serverData.recommendations.map((item: any) => {
+          const id = item.paper_id || item.id || item._id || '';
+
+          const authors =
+            Array.isArray(item.authors) ? item.authors :
+            typeof item.authors === 'string'
+              ? item.authors.split(',').map((s: string) => s.trim())
+              : [];
+
+          const categories =
+            Array.isArray(item.categories) ? item.categories :
+            typeof item.categories === 'string'
+              ? [item.categories]
+              : [];
+
+          const paper: Paper = {
+            id,
+            title: item.title || '',
+            authors,
+            categories,
+            update_date: item.update_date,
+            abstract: item.abstract,
+            summary: item.summary,
+          };
+
+          return paper;
+        });
+      }
+
+      // 2) 일반적인 리스트 구조 (papers / results / data / items)
+      const papersArray =
+        serverData.papers ||
+        serverData.results ||
+        serverData.data ||
+        serverData.items ||
+        [];
+
+      return papersArray as Paper[];
+    }
+    
+    // 알 수 없는 응답 형식인 경우 빈 배열
+    return [];
+  }).catch((error: AxiosError) => {
+    console.error('추천 논문 조회 실패:', error);
+    if (error.response?.data) {
+      const errorData = error.response.data as any;
+      if (errorData.error) {
+        throw new Error(errorData.error);
+      }
+      if (errorData.message) {
+        throw new Error(errorData.message);
+      }
+    }
+    throw error;
+  });
 };
 
 // 검색 기록 조회

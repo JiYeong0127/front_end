@@ -227,11 +227,36 @@ export function UnifiedPaperCard({
 
           <h4
             onClick={handleCardClick}
-            className="line-clamp-2 min-h-[3rem] mb-3 cursor-pointer hover:text-[#4FA3D1] transition-colors pr-6"
+            className="line-clamp-2 min-h-[3rem] mb-2 cursor-pointer hover:text-[#4FA3D1] transition-colors pr-6"
             style={{ color: '#215285' }}
           >
             {title}
           </h4>
+
+          {/* Authors */}
+          {authorsText && (
+            <div className="mb-2 text-sm text-gray-600 break-words">
+              <span>{authorsText}</span>
+            </div>
+          )}
+
+          {/* Categories */}
+          {categories && categories.length > 0 && (
+            <div className="flex flex-wrap gap-2 mb-3">
+              {categories.map((category, index) => (
+                <span
+                  key={index}
+                  className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium"
+                  style={{
+                    backgroundColor: '#EAF4FA',
+                    color: '#4FA3D1',
+                  }}
+                >
+                  {category}
+                </span>
+              ))}
+            </div>
+          )}
 
           {/* Summary */}
           {showSummary && summary && (

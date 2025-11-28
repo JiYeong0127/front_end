@@ -6,7 +6,7 @@ import { SearchHeader } from '../layout/SearchHeader';
 import { Footer } from '../layout/Footer';
 import { Separator } from '../ui/separator';
 import { ScrollToTopButton } from '../layout/ScrollToTopButton';
-import { usePaperDetailQuery, useToggleBookmarkMutation, useBookmarksQuery } from '../../hooks/api';
+import { usePaperDetailQuery, useToggleBookmarkMutation, useBookmarksQuery, useRecommendationsQuery } from '../../hooks/api';
 import { usePaperActions } from '../../hooks/usePaperActions';
 import { useAppStore } from '../../store/useAppStore';
 import { Alert, AlertDescription } from '../ui/alert';
@@ -16,44 +16,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '../ui/tooltip';
-import { Paper } from '../../lib/api';
 import { UnifiedPaperCard } from '../papers/UnifiedPaperCard';
-
-// 추천 논문 Mock Data
-const mockRecommendedPapers: Paper[] = [
-  {
-    id: 'mock-1',
-    title: 'Transformer-based Language Models for Natural Language Understanding',
-    authors: 'Smith, J., Johnson, A., Williams, B.',
-    categories: ['cs.AI', 'cs.CL'],
-    update_date: '2024-01-15',
-    abstract: 'This paper presents a comprehensive study on transformer-based language models and their applications in natural language understanding tasks.',
-  },
-  {
-    id: 'mock-2',
-    title: 'Deep Learning Approaches to Computer Vision',
-    authors: 'Chen, L., Kim, S., Patel, R.',
-    categories: ['cs.CV', 'cs.LG'],
-    update_date: '2024-01-10',
-    abstract: 'We explore various deep learning architectures for computer vision tasks including object detection, image classification, and semantic segmentation.',
-  },
-  {
-    id: 'mock-3',
-    title: 'Reinforcement Learning in Multi-Agent Systems',
-    authors: 'Anderson, M., Brown, K., Davis, P.',
-    categories: ['cs.MA', 'cs.AI'],
-    update_date: '2024-01-08',
-    abstract: 'This research investigates reinforcement learning strategies for coordinating multiple agents in complex environments.',
-  },
-  {
-    id: 'mock-4',
-    title: 'Neural Architecture Search for Efficient Models',
-    authors: 'Wilson, T., Martinez, C., Lee, H.',
-    categories: ['cs.LG', 'cs.NE'],
-    update_date: '2024-01-05',
-    abstract: 'We propose a novel neural architecture search method that efficiently discovers optimal network structures for specific tasks.',
-  },
-];
 
 export function PaperDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -67,6 +30,14 @@ export function PaperDetailPage() {
   
   const { data: paper, isLoading, isError, error } = usePaperDetailQuery(paperId, !!paperId);
   const toggleBookmarkMutation = useToggleBookmarkMutation();
+  
+  // 추천 논문 조회 (현재 상세 논문 ID 기준, 진입할 때마다 새로 요청)
+  const { 
+    data: recommendedPapers = [], 
+    isLoading: isLoadingRecommendations,
+    isError: isErrorRecommendations,
+    error: errorRecommendations 
+  } = useRecommendationsQuery(paperId, 6, true);
 
   // 논문이 로드되면 최근 조회 목록에 추가
   useEffect(() => {
@@ -223,24 +194,47 @@ export function PaperDetailPage() {
             <h2 className="text-2xl font-bold mb-6" style={{ color: '#215285' }}>
               추천 논문
             </h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {mockRecommendedPapers.map((recommendedPaper) => (
-                <UnifiedPaperCard
-                  key={recommendedPaper.id}
-                  paperId={recommendedPaper.id}
-                  title={recommendedPaper.title}
-                  authors={recommendedPaper.authors}
-                  categories={recommendedPaper.categories}
-                  update_date={recommendedPaper.update_date}
-                  variant="recommended"
-                  onPaperClick={handlePaperClick}
-                  onToggleBookmark={handleBookmark}
-                  isBookmarked={checkIsBookmarked(recommendedPaper.id)}
-                  showSummary={false}
-                  showBookmark={true}
-                />
-              ))}
-            </div>
+            {isLoadingRecommendations ? (
+              <div className="flex justify-center items-center py-12">
+                <Loader2 className="h-6 w-6 animate-spin" style={{ color: '#4FA3D1' }} />
+              </div>
+            ) : isErrorRecommendations ? (
+              <div className="text-center py-12">
+                <Alert variant="destructive">
+                  <AlertDescription>
+                    추천 논문을 불러오는 중 오류가 발생했습니다.
+                    {errorRecommendations instanceof Error && (
+                      <span className="block mt-2 text-sm">
+                        {errorRecommendations.message}
+                      </span>
+                    )}
+                  </AlertDescription>
+                </Alert>
+              </div>
+            ) : recommendedPapers.length > 0 ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {recommendedPapers.map((recommendedPaper) => (
+                  <UnifiedPaperCard
+                    key={recommendedPaper.id}
+                    paperId={recommendedPaper.id}
+                    title={recommendedPaper.title}
+                    authors={Array.isArray(recommendedPaper.authors) ? recommendedPaper.authors.join(', ') : recommendedPaper.authors}
+                    categories={recommendedPaper.categories}
+                    update_date={recommendedPaper.update_date}
+                    variant="recommended"
+                    onPaperClick={handlePaperClick}
+                    onToggleBookmark={handleBookmark}
+                    isBookmarked={checkIsBookmarked(recommendedPaper.id)}
+                    showSummary={false}
+                    showBookmark={true}
+                  />
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-12">
+                <p className="text-gray-500">추천 논문이 없습니다.</p>
+              </div>
+            )}
           </section>
         </div>
       </main>
