@@ -207,7 +207,13 @@ export const getPaperById = (id: string): Promise<Paper> => {
 };
 
 // 추천 논문 조회
-export const getRecommendations = (topK: number = 6): Promise<Paper[]> => {
+// - 상세 페이지에서 보고 있는 논문(paperId)을 기반으로 유사 논문을 추천
+// - 서버 엔드포인트: GET /recommendations
+//   - 쿼리 파라미터로 papers_id, top_k 를 전달 (예: /recommendations?papers_id=0704.0001&top_k=6)
+export const getRecommendations = (
+  paperId: string | number,
+  topK: number = 6
+): Promise<Paper[]> => {
   type ServerResponse = {
     // 추천 API 전용 필드
     recommendations?: any[];
@@ -219,7 +225,11 @@ export const getRecommendations = (topK: number = 6): Promise<Paper[]> => {
   };
 
   return api.get<ServerResponse | Paper[]>(endpoints.recommendations, {
-    params: { top_k: topK },
+    params: {
+      top_k: topK,
+      // API 명세: papers_id 기준으로 유사 논문 추천
+      papers_id: paperId,
+    },
     timeout: 420000, // 추천 논문 조회는 최대 7분까지 대기
   }).then(res => {
     const response = res.data;

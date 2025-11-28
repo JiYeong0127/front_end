@@ -63,7 +63,11 @@ export function useRecommendationsQuery(
   return useQuery({
     queryKey: ['papers', 'recommendations', paperId, topK],
     queryFn: async (): Promise<Paper[]> => {
-      return getRecommendations(topK);
+      // paperId가 존재할 때만 API 호출 (enabled 조건과 한 번 더 방어)
+      if (!paperId) {
+        return [];
+      }
+      return getRecommendations(paperId, topK);
     },
     enabled: enabled && isLoggedIn && !!paperId, // 논문 ID가 있고 로그인일 때만 호출
     refetchOnMount: 'always', // 상세 페이지 마운트 시마다 재요청
