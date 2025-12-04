@@ -1,6 +1,6 @@
 // 논문 관련 React Query 훅
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { api, endpoints, Paper, SearchPapersResponse, BookmarkResponse, SearchHistoryResponse, fetchSearchHistory, addBookmark, AddBookmarkResponse, deleteBookmark, updateBookmark, BookmarkItem, UpdateBookmarkResponse, fetchBookmarks, BookmarksListResponse, BookmarkListItem, searchPapers, getPaperDetail, getPaperById, getRecommendations } from '../../lib/api';
+import { api, endpoints, Paper, SearchPapersResponse, BookmarkResponse, SearchHistoryResponse, fetchSearchHistory, fetchViewedPapers, addBookmark, AddBookmarkResponse, deleteBookmark, updateBookmark, BookmarkItem, UpdateBookmarkResponse, fetchBookmarks, BookmarksListResponse, BookmarkListItem, searchPapers, getPaperDetail, getPaperById, getRecommendations } from '../../lib/api';
 import { useAuthStore } from '../../store/authStore';
 import { useAppStore } from '../../store/useAppStore';
 import { toast } from 'sonner';
@@ -280,6 +280,20 @@ export function useSearchHistoryQuery(userId: string | null, limit: number = 20,
       return fetchSearchHistory(userId, limit);
     },
     enabled: enabled && !!userId,
+    staleTime: 1 * 60 * 1000,
+  });
+}
+
+// 조회한 논문 조회 (페이지네이션 지원)
+export function useViewedPapersQuery(page: number = 1, limit: number = 10, enabled: boolean = true) {
+  const isLoggedIn = useAuthStore((state) => state.isLoggedIn);
+  
+  return useQuery({
+    queryKey: ['papers', 'viewed', page, limit],
+    queryFn: async (): Promise<SearchPapersResponse> => {
+      return fetchViewedPapers(page, limit);
+    },
+    enabled: enabled && isLoggedIn,
     staleTime: 1 * 60 * 1000,
   });
 }

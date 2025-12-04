@@ -1,11 +1,10 @@
-import { useState, useMemo } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Search, X } from "lucide-react";
 import { Input } from "../ui/input";
 import { ScrollArea, ScrollBar } from "../ui/scroll-area";
 import { toast } from "sonner";
 import { useAuthStore } from "../../store/authStore";
-import { useSearchHistory } from "../../hooks/api";
-import { useQueryClient } from "@tanstack/react-query";
+import { loadRecentSearches, saveSearchKeyword, removeSearchKeyword } from "../../utils/localSearchHistory";
 
 interface HeroSectionProps {
   onSearch?: (query: string) => void;
@@ -14,18 +13,14 @@ interface HeroSectionProps {
 export function HeroSection({ onSearch }: HeroSectionProps) {
   const isLoggedIn = useAuthStore((state) => state.isLoggedIn);
   const [searchValue, setSearchValue] = useState("");
-  const queryClient = useQueryClient();
-  
-  // 백엔드에서 검색 기록 가져오기
-  const { data: searchHistoryData, isLoading: isLoadingHistory } = useSearchHistory(undefined, 8);
-  
-  // 검색어 키워드만 추출
-  const recentSearches = useMemo(() => {
-    if (!searchHistoryData) return [];
-    return searchHistoryData.map(item => item.query).filter(Boolean);
-  }, [searchHistoryData]);
+  const maxRecentSearches = 8;
+  const [recentSearches, setRecentSearches] = useState<string[]>([]);
 
-  const handleSearch = () => {
+  useEffect(() => {
+    setRecentSearches(loadRecentSearches(maxRecentSearches));
+  }, [maxRecentSearches]);
+
+  const handleSearch = useCallback(() => {
     if (!searchValue.trim()) {
       return;
     }
@@ -38,28 +33,28 @@ export function HeroSection({ onSearch }: HeroSectionProps) {
     }
 
     const trimmedValue = searchValue.trim();
-    
-    // 검색 기록 갱신 (백엔드에 저장됨)
-    queryClient.invalidateQueries({ queryKey: ['searchHistory'] });
+
+    const updated = saveSearchKeyword(trimmedValue, maxRecentSearches);
+    setRecentSearches(updated);
     
     if (onSearch) {
       onSearch(trimmedValue);
     }
-  };
+  }, [searchValue, isLoggedIn, maxRecentSearches, onSearch]);
 
-  const handleKeyPress = (e: React.KeyboardEvent<HTMLInputElement>) => {
+  const handleKeyPress = useCallback((e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === "Enter") {
       handleSearch();
     }
-  };
+  }, [handleSearch]);
 
-  const removeSearch = (searchToRemove: string) => {
-    // 프론트에서만 제거 (백엔드 삭제 API가 있다면 추가 가능)
-    // 현재는 UI에서만 제거하고, 새로고침 시 다시 나타날 수 있음
-    queryClient.invalidateQueries({ queryKey: ['searchHistory'] });
-  };
+  // localStorage에서만 제거
+  const removeSearch = useCallback((searchToRemove: string) => {
+    const updated = removeSearchKeyword(searchToRemove, maxRecentSearches);
+    setRecentSearches(updated);
+  }, [maxRecentSearches]);
 
-  const handleRecentSearchClick = (search: string) => {
+  const handleRecentSearchClick = useCallback((search: string) => {
     setSearchValue(search);
 
     if (!isLoggedIn) {
@@ -72,7 +67,7 @@ export function HeroSection({ onSearch }: HeroSectionProps) {
     if (onSearch) {
       onSearch(search);
     }
-  };
+  }, [isLoggedIn, onSearch]);
 
   return (
     <section className="w-full bg-gradient-to-b from-gray-50 to-white py-16 md:py-24">
@@ -117,20 +112,18 @@ export function HeroSection({ onSearch }: HeroSectionProps) {
             {isLoggedIn && (
               <div className="flex items-center gap-2">
                 <span className="text-sm text-gray-500 whitespace-nowrap">최근 검색:</span>
-                {isLoadingHistory ? (
-                  <span className="text-sm text-gray-400">로딩 중...</span>
-                ) : recentSearches.length > 0 ? (
+                {recentSearches.length > 0 ? (
                   <ScrollArea className="w-full max-h-[40px]">
                     <div className="flex gap-2 pb-2 pr-2">
                       {recentSearches.map((search, index) => (
                         <button
-                          key={index}
+                          key={`${search}-${index}`}
                           className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-gray-100 hover:bg-gray-200 text-sm text-gray-700 whitespace-nowrap transition-colors flex-shrink-0"
                           onClick={() => handleRecentSearchClick(search)}
                         >
                           {search}
                           <X
-                            className="h-3 w-3 hover:text-red-500"
+                            className="h-3 w-3 hover:text-red-500 transition-colors"
                             onClick={(e) => {
                               e.stopPropagation();
                               removeSearch(search);

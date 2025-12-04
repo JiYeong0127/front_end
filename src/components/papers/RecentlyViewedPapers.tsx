@@ -8,8 +8,7 @@ import {
 } from '../ui/tooltip';
 import { useAuthStore } from '../../store/authStore';
 import { useNavigation } from '../../hooks/useNavigation';
-import { useMyProfileQuery } from '../../hooks/api/useMyProfile';
-import { useSearchHistoryQuery } from '../../hooks/api/usePapers';
+import { useViewedPapersQuery } from '../../hooks/api/usePapers';
 
 interface RecentlyViewedPapersProps {
   onPaperClick?: (paperId: string | number) => void;
@@ -26,17 +25,15 @@ export function RecentlyViewedPapers({
 }: RecentlyViewedPapersProps) {
   const isLoggedIn = useAuthStore((state) => state.isLoggedIn);
   const { goToRecentPapers } = useNavigation();
-  const { data: profile } = useMyProfileQuery();
-  const userId = profile?.id || null;
 
-  // 검색 기록 조회 (메인 페이지용 7개)
-  const { data: searchHistoryData, isLoading, isError } = useSearchHistoryQuery(
-    userId,
+  // 조회한 논문 조회 (메인 페이지용 7개)
+  const { data: viewedPapersData, isLoading, isError } = useViewedPapersQuery(
+    1,
     7,
     isLoggedIn
   );
 
-  const recentPapers = searchHistoryData?.papers || [];
+  const recentPapers = viewedPapersData?.papers || [];
 
   // 로딩 상태 처리
   if (isLoading) {
@@ -88,9 +85,10 @@ export function RecentlyViewedPapers({
             <div className="flex gap-4 min-w-max md:min-w-0">
               {recentPapers.map((paper) => {
                 const authors = Array.isArray(paper.authors) ? paper.authors : [paper.authors];
-                const year = typeof paper.year === 'string' ? paper.year : String(paper.year);
-                const keywords = paper.keywords || [];
-                
+                const categories = Array.isArray(paper.categories)
+                  ? paper.categories
+                  : (paper.categories ? [paper.categories] : []);
+               
                 return (
                   <Card
                     key={paper.id}
@@ -142,15 +140,10 @@ export function RecentlyViewedPapers({
                         {authors.length > 2 && ' 외'}
                       </p>
 
-                      {/* 연도 및 출판사 */}
-                      <p className="text-xs text-gray-500 mb-3">
-                        {year} · {paper.publisher}
-                      </p>
-
-                      {/* 키워드 */}
-                      {keywords.length > 0 && (
+                      {/* 카테고리 */}
+                      {categories.length > 0 && (
                         <div className="flex flex-wrap gap-1.5 mb-4">
-                          {keywords.slice(0, 2).map((keyword: string, idx: number) => (
+                          {categories.slice(0, 2).map((category: string, idx: number) => (
                             <span
                               key={idx}
                               className="px-2 py-0.5 text-xs rounded-full"
@@ -159,7 +152,7 @@ export function RecentlyViewedPapers({
                                 color: '#215285'
                               }}
                             >
-                              {keyword}
+                              {category}
                             </span>
                           ))}
                         </div>

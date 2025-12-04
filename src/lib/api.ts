@@ -2,7 +2,7 @@
 import axios, { AxiosError } from 'axios';
 import { LoginRequest, LoginResponse, RegisterRequest, RegisterResponse, UsernameExistsResponse, UserProfile } from '../types/auth';
 
-const BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://35.94.93.225';
+const BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://44.234.58.137';
 
 // Axios 인스턴스 생성
 export const api = axios.create({
@@ -91,6 +91,7 @@ export const endpoints = {
     bookmarks: '/papers/bookmarks',
     toggleBookmark: (id: number) => `/papers/${id}/bookmark`,
     searchHistory: '/papers/search-history',
+    viewed: '/papers/viewed',
   },
   bookmarks: '/bookmarks',
   userInterests: '/user-interests',
@@ -266,8 +267,9 @@ export const getRecommendations = (
             authors,
             categories,
             update_date: item.update_date,
-            abstract: item.abstract,
-            summary: item.summary,
+            // summary를 우선 사용, 없으면 abstract 사용
+            summary: (item as any).summary || (item as any).abstract,
+            abstract: (item as any).abstract,
           };
 
           return paper;
@@ -308,63 +310,42 @@ export const fetchSearchHistory = (userId: string, limit: number = 20): Promise<
     params: { user_id: userId, limit },
   }).then(res => res.data);
 
-// 검색어 기록 조회
-export const getSearchHistory = (userId: number, limit: number = 20): Promise<SearchQueryHistoryItem[]> => {
-  return api.get<any>(endpoints.papers.searchHistory, {
-    params: { user_id: userId, limit },
+// 조회한 논문 조회
+export const fetchViewedPapers = (page: number = 1, limit: number = 10): Promise<SearchPapersResponse> => {
+  type ServerResponse = {
+    papers?: Paper[];
+    results?: Paper[];
+    data?: Paper[];
+    items?: Paper[];
+    total?: number;
+    page?: number;
+    page_size?: number;
+    pageSize?: number;
+  };
+
+  return api.get<SearchPapersResponse | ServerResponse>(endpoints.papers.viewed, {
+    params: { page, limit },
   }).then(res => {
-    const serverData = res.data;
+    const serverData = (res.data || {}) as ServerResponse;
     
-    let queriesArray: any[] = [];
+    const papersArray = serverData.papers || 
+                       serverData.results || 
+                       serverData.data || 
+                       serverData.items || 
+                       [];
     
-    if (Array.isArray(serverData)) {
-      queriesArray = serverData;
-    } else if (serverData && typeof serverData === 'object') {
-      queriesArray = serverData.queries || 
-                    serverData.search_history || 
-                    serverData.data || 
-                    serverData.items ||
-                    serverData.results ||
-                    [];
-    } else {
-      return [];
-    }
+    const response: SearchPapersResponse = {
+      papers: papersArray,
+      total: serverData.total || 0,
+      page: serverData.page || page,
+      pageSize: serverData.page_size || serverData.pageSize || limit,
+    };
     
-    if (queriesArray.length === 0) {
-      return [];
-    }
-    
-    const sorted = [...queriesArray].sort((a, b) => {
-      if (!a.searched_at && !b.searched_at) return 0;
-      if (!a.searched_at) return 1;
-      if (!b.searched_at) return -1;
-      return new Date(b.searched_at).getTime() - new Date(a.searched_at).getTime();
-    });
-    
-    const seen = new Set<string>();
-    const unique: SearchQueryHistoryItem[] = [];
-    
-    for (const item of sorted) {
-      const query = item.query?.trim() || 
-                   item.search_query?.trim() || 
-                   item.keyword?.trim() || 
-                   '';
-      
-      if (query && !seen.has(query)) {
-        seen.add(query);
-        unique.push({
-          query: query,
-          searched_at: item.searched_at || item.searchedAt || item.created_at || item.createdAt,
-        });
-      }
-    }
-    
-    return unique;
-  }).catch(error => {
-    console.error('검색 기록 조회 에러:', error);
-    throw error;
+    return response;
   });
 };
+
+// 검색어 기록 조회 API(getSearchHistory)는 더 이상 사용되지 않아 제거되었습니다.
 
 // 북마크 관련 API 함수
 
@@ -496,7 +477,8 @@ export interface Paper {
   categories?: string[];
   externalUrl?: string;
   translatedSummary?: string;
-  summary?: string;
+  // 백엔드에서 summary가 문자열 또는 { en, ko } 객체로 올 수 있음
+  summary?: string | { en?: string; ko?: string | null };
   update_count?: number;
   update_date?: string;
 }

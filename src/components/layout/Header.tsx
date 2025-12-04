@@ -10,7 +10,42 @@ import { useMyProfileQuery } from '../../hooks/api/useMyProfile';
 import { UserProfile } from '../../types/auth';
 import logo from '../../assets/logo.png';
 
-export function Header() {
+/**
+ * Header 컴포넌트 Props
+ */
+interface HeaderProps {
+  /** 검색 기능 표시 여부 */
+  showSearch?: boolean;
+  /** 커스텀 로고 컴포넌트 */
+  customLogo?: React.ReactNode;
+  /** 로고 클릭 핸들러 */
+  onLogoClick?: () => void;
+  /** 우측 커스텀 컨텐츠 */
+  rightContent?: React.ReactNode;
+  /** 추가 CSS 클래스 */
+  className?: string;
+}
+
+/**
+ * 헤더 컴포넌트
+ * 
+ * 로고, 네비게이션, 사용자 메뉴를 포함합니다.
+ * 
+ * @example
+ * ```tsx
+ * <Header
+ *   onLogoClick={() => navigate('/')}
+ *   rightContent={<CustomButton />}
+ * />
+ * ```
+ */
+export function Header({
+  showSearch = false,
+  customLogo,
+  onLogoClick,
+  rightContent,
+  className
+}: HeaderProps = {}) {
   const [isOpen, setIsOpen] = useState(false);
   const { goToLogin, goToSignup, goToHome, goToMyPage } = useNavigation();
   const isLoggedIn = useAuthStore((state) => state.isLoggedIn);
@@ -24,21 +59,35 @@ export function Header() {
   // 표시할 이름 결정: API에서 가져온 이름 > authStore의 name > username
   const displayName = (profile as UserProfile | undefined)?.name ?? name ?? username ?? '';
 
+  const handleLogoClick = () => {
+    if (onLogoClick) {
+      onLogoClick();
+    } else {
+      goToHome();
+    }
+  };
+
   return (
-    <header className="sticky top-0 z-50 w-full bg-white shadow-sm">
+    <header className={`sticky top-0 z-50 w-full bg-white shadow-sm ${className || ''}`}>
       <div className="max-w-[1200px] mx-auto px-4 md:px-6 lg:px-10 h-16 md:h-20 flex items-center justify-between">
         {/* Logo */}
-        <div className="flex items-center h-full py-2 cursor-pointer" onClick={goToHome}>
-          <img 
-            src={logo} 
-            alt="RSRS Logo" 
-            className="h-full w-auto object-contain"
-            style={{ maxHeight: '100%' }}
-          />
+        <div className="flex items-center h-full py-2 cursor-pointer" onClick={handleLogoClick}>
+          {customLogo || (
+            <img 
+              src={logo} 
+              alt="RSRS Logo" 
+              className="h-full w-auto object-contain"
+              style={{ maxHeight: '100%' }}
+            />
+          )}
         </div>
 
         {/* Desktop Navigation */}
-        {!isLoggedIn ? (
+        {rightContent ? (
+          <div className="hidden md:flex items-center gap-4">
+            {rightContent}
+          </div>
+        ) : !isLoggedIn ? (
           <nav className="hidden md:flex items-center gap-4">
             <Button 
               variant="outline"

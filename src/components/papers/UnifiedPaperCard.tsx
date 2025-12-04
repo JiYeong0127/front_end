@@ -1,3 +1,4 @@
+import { useState, useRef, useEffect } from 'react';
 import { User, BookOpen, ArrowRight, Bookmark, ExternalLink } from 'lucide-react';
 import { Card, CardContent } from '../ui/card';
 import { Button } from '../ui/button';
@@ -13,11 +14,24 @@ import { UnifiedPaperCardProps } from '../../types/paper';
  * 통합 PaperCard 컴포넌트
  * 
  * variant에 따라 다른 레이아웃을 렌더링합니다:
- * - 'default': 기본 카드 레이아웃
+ * - 'default': 기본 카드 레이아웃 (publisher, year, pages 표시)
  * - 'list': 목록 형태 (PaperListCard 스타일)
- * - 'search': 검색 결과 형태 (SearchResultCard 스타일)
- * - 'compact': 컴팩트 형태 (PaperListItemCard 스타일)
- * - 'recommended': 추천 논문 형태 (RecommendedPaperCard 스타일)
+ * - 'search': 검색 결과 형태 (update_count/update_date, categories 표시)
+ * - 'compact': 컴팩트 형태 (categories만 표시)
+ * - 'recommended': 추천 논문 형태 (categories, summary 표시)
+ * 
+ * @example
+ * ```tsx
+ * <UnifiedPaperCard
+ *   paperId="123"
+ *   title="논문 제목"
+ *   authors={["저자1", "저자2"]}
+ *   variant="search"
+ *   showExternalLink={true}
+ *   showJournal={true}
+ *   journal="저널명"
+ * />
+ * ```
  */
 export function UnifiedPaperCard({
   paperId,
@@ -32,6 +46,7 @@ export function UnifiedPaperCard({
   update_count,
   update_date,
   categories,
+  journal,
   isBookmarked = false,
   onToggleBookmark,
   onPaperClick,
@@ -40,10 +55,25 @@ export function UnifiedPaperCard({
   showTranslatedSummary = false,
   showBookmark = true,
   showExternalLink = false,
+  showJournal = false,
+  showCategories = true,
   className,
 }: UnifiedPaperCardProps) {
+  const [isAuthorsExpanded, setIsAuthorsExpanded] = useState(false);
+  const [showExpandButton, setShowExpandButton] = useState(false);
+  const authorsRef = useRef<HTMLDivElement>(null);
   const authorsText = Array.isArray(authors) ? authors.join(', ') : authors;
   const yearText = year ? String(year) : undefined;
+
+  // 저자가 2줄 이상인지 확인
+  useEffect(() => {
+    if (authorsRef.current) {
+      const element = authorsRef.current;
+      const lineHeight = parseFloat(getComputedStyle(element).lineHeight);
+      const maxHeight = lineHeight * 2; // 2줄 높이
+      setShowExpandButton(element.scrollHeight > maxHeight);
+    }
+  }, [authorsText]);
 
   const handleCardClick = () => {
     if (onPaperClick) {
@@ -111,8 +141,38 @@ export function UnifiedPaperCard({
 
             {/* Authors */}
             <div className="text-sm text-gray-600 break-words">
-              <span>{authorsText}</span>
+              <div 
+                ref={authorsRef}
+                className={`${isAuthorsExpanded ? '' : 'line-clamp-2'}`}
+              >
+                저자: {authorsText}
+              </div>
+              {showExpandButton && (
+                <button
+                  type="button"
+                  className="mt-1 text-sm text-[#215285] hover:underline transition-colors"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setIsAuthorsExpanded(!isAuthorsExpanded);
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.textDecoration = 'underline';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.textDecoration = 'none';
+                  }}
+                >
+                  {isAuthorsExpanded ? '간략히' : '더보기'}
+                </button>
+              )}
             </div>
+
+            {/* Journal */}
+            {showJournal && (
+              <div className="text-sm text-gray-600 break-words">
+                저널: {journal || 'Undefined'}
+              </div>
+            )}
 
             {/* Meta Info: update_count/update_date and categories */}
             <div className="flex flex-wrap items-center gap-3">
@@ -132,7 +192,7 @@ export function UnifiedPaperCard({
               )}
 
               {/* Categories */}
-              {categories && categories.length > 0 && (
+              {showCategories && categories && categories.length > 0 && (
                 <div className="flex flex-wrap gap-2">
                   {categories.map((category, index) => (
                     <span
@@ -186,17 +246,58 @@ export function UnifiedPaperCard({
                   {title}
                 </h3>
 
-                <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-gray-600">
-                  <span className="truncate">{authorsText}</span>
-                  <span className="text-gray-400">•</span>
-                  <span>{publisher}</span>
-                  {yearText && (
-                    <>
-                      <span className="text-gray-400">•</span>
-                      <span>{yearText}</span>
-                    </>
+                {/* Authors */}
+                <div className="text-sm text-gray-600 mb-2">
+                  <div 
+                    ref={authorsRef}
+                    className={`${isAuthorsExpanded ? '' : 'line-clamp-2'}`}
+                  >
+                    저자: {authorsText}
+                  </div>
+                  {showExpandButton && (
+                    <button
+                      type="button"
+                      className="mt-1 text-sm text-[#215285] hover:underline transition-colors"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setIsAuthorsExpanded(!isAuthorsExpanded);
+                      }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.textDecoration = 'underline';
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.textDecoration = 'none';
+                      }}
+                    >
+                      {isAuthorsExpanded ? '간략히' : '더보기'}
+                    </button>
                   )}
                 </div>
+
+                {/* Journal */}
+                {showJournal && (
+                  <div className="text-sm text-gray-600 mb-2">
+                    저널: {journal || 'Undefined'}
+                  </div>
+                )}
+
+                {/* Categories */}
+                {showCategories && categories && categories.length > 0 && (
+                  <div className="flex flex-wrap gap-2 mb-2">
+                    {categories.map((category, index) => (
+                      <span
+                        key={index}
+                        className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium"
+                        style={{
+                          backgroundColor: '#EAF4FA',
+                          color: '#4FA3D1',
+                        }}
+                      >
+                        {category}
+                      </span>
+                    ))}
+                  </div>
+                )}
               </div>
 
               {/* 자세히 보기 링크 */}
@@ -236,12 +337,42 @@ export function UnifiedPaperCard({
           {/* Authors */}
           {authorsText && (
             <div className="mb-2 text-sm text-gray-600 break-words">
-              <span>{authorsText}</span>
+              <div 
+                ref={authorsRef}
+                className={`${isAuthorsExpanded ? '' : 'line-clamp-2'}`}
+              >
+                저자: {authorsText}
+              </div>
+              {showExpandButton && (
+                <button
+                  type="button"
+                  className="mt-1 text-xs text-[#215285] hover:underline transition-colors"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setIsAuthorsExpanded(!isAuthorsExpanded);
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.textDecoration = 'underline';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.textDecoration = 'none';
+                  }}
+                >
+                  {isAuthorsExpanded ? '간략히' : '더보기'}
+                </button>
+              )}
+            </div>
+          )}
+
+          {/* Journal */}
+          {showJournal && (
+            <div className="mb-2 text-sm text-gray-600 break-words">
+              저널: {journal || 'Undefined'}
             </div>
           )}
 
           {/* Categories */}
-          {categories && categories.length > 0 && (
+          {showCategories && categories && categories.length > 0 && (
             <div className="flex flex-wrap gap-2 mb-3">
               {categories.map((category, index) => (
                 <span
@@ -301,9 +432,34 @@ export function UnifiedPaperCard({
             </h3>
 
             <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-gray-600 mb-2">
-              <div className="flex items-center gap-1">
+              <div className="flex items-center gap-1 flex-1 min-w-0">
                 <User className="h-4 w-4 flex-shrink-0" />
-                <span className="truncate">{authorsText}</span>
+                <div className="flex-1 min-w-0">
+                  <div 
+                    ref={authorsRef}
+                    className={`${isAuthorsExpanded ? '' : 'line-clamp-2'}`}
+                  >
+                    저자: {authorsText}
+                  </div>
+                  {showExpandButton && (
+                    <button
+                      type="button"
+                      className="mt-1 text-sm text-[#215285] hover:underline transition-colors"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setIsAuthorsExpanded(!isAuthorsExpanded);
+                      }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.textDecoration = 'underline';
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.textDecoration = 'none';
+                      }}
+                    >
+                      {isAuthorsExpanded ? '간략히' : '더보기'}
+                    </button>
+                  )}
+                </div>
               </div>
 
               <div className="flex items-center gap-1">
@@ -314,6 +470,13 @@ export function UnifiedPaperCard({
               {pages && <span className="text-gray-500">{pages}</span>}
               {yearText && !pages && <span className="text-gray-500">{yearText}</span>}
             </div>
+
+            {/* Journal */}
+            {showJournal && (
+              <div className="text-sm text-gray-600 mb-2">
+                저널: {journal || 'Undefined'}
+              </div>
+            )}
 
             {/* Summary */}
             {showSummary && summary && (

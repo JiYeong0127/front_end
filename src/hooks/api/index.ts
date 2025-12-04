@@ -6,4 +6,3 @@ export * from './useUsernameExists';
 export * from './useMyProfile';
 export * from './useLogout';
 export * from './useInterestCategories';
-export * from './useSearchHistory';

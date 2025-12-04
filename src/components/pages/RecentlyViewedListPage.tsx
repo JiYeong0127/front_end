@@ -9,7 +9,7 @@ import { Alert, AlertDescription } from '../ui/alert';
 import { usePaperActions } from '../../hooks/usePaperActions';
 import { useAuthStore } from '../../store/authStore';
 import { useMyProfileQuery } from '../../hooks/api/useMyProfile';
-import { useSearchHistoryQuery, useBookmarksQuery } from '../../hooks/api/usePapers';
+import { useViewedPapersQuery, useBookmarksQuery } from '../../hooks/api/usePapers';
 
 const ITEMS_PER_PAGE = 10;
 
@@ -17,8 +17,6 @@ export function RecentlyViewedListPage() {
   const [currentPage, setCurrentPage] = useState(1);
   const { handlePaperClick, handleBookmark } = usePaperActions();
   const isLoggedIn = useAuthStore((state) => state.isLoggedIn);
-  const { data: profile } = useMyProfileQuery();
-  const userId = profile?.id || null;
   const { data: bookmarks = [] } = useBookmarksQuery();
   
   // 북마크 상태 확인 함수
@@ -29,20 +27,17 @@ export function RecentlyViewedListPage() {
     });
   };
 
-  // 검색 기록 조회 (20개)
-  const { data: searchHistoryData, isLoading, isError, error } = useSearchHistoryQuery(
-    userId,
-    20,
+  // 조회한 논문 조회 (서버 사이드 페이지네이션)
+  const { data: viewedPapersData, isLoading, isError, error } = useViewedPapersQuery(
+    currentPage,
+    ITEMS_PER_PAGE,
     isLoggedIn
   );
 
-  const recentPapers = searchHistoryData?.papers || [];
-
-  // 클라이언트 사이드 페이지네이션
-  const totalPages = Math.ceil(recentPapers.length / ITEMS_PER_PAGE);
-  const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
-  const endIndex = startIndex + ITEMS_PER_PAGE;
-  const currentPapers = recentPapers.slice(startIndex, endIndex);
+  const recentPapers = viewedPapersData?.papers || [];
+  const totalPages = viewedPapersData?.total 
+    ? Math.ceil(viewedPapersData.total / ITEMS_PER_PAGE)
+    : 0;
 
   const handlePageChange = (page: number) => {
     setCurrentPage(page);
@@ -111,10 +106,9 @@ export function RecentlyViewedListPage() {
           </div>
 
           <div className="space-y-4 mb-8">
-            {currentPapers.length > 0 ? (
-              currentPapers.map((paper) => {
+            {recentPapers.length > 0 ? (
+              recentPapers.map((paper) => {
                 const authors = Array.isArray(paper.authors) ? paper.authors.join(', ') : paper.authors;
-                const year = typeof paper.year === 'string' ? paper.year : String(paper.year);
                 
                 return (
                   <UnifiedPaperCard
@@ -122,8 +116,7 @@ export function RecentlyViewedListPage() {
                     paperId={paper.id}
                     title={paper.title}
                     authors={authors}
-                    year={year}
-                    publisher={paper.publisher}
+                    categories={paper.categories}
                     variant="compact"
                     onPaperClick={handlePaperClick}
                     onToggleBookmark={handleBookmark}
