@@ -6,7 +6,7 @@ import { useAppStore } from '../../store/useAppStore';
 import { toast } from 'sonner';
 
 export interface SearchPapersParams {
-  q: string;
+  q?: string;
   categories?: string[];
   page?: number;
   sort_by?: string;
@@ -28,7 +28,7 @@ export function useSearchPapersQuery(params: SearchPapersParams, enabled: boolea
         params.sort_by
       );
     },
-    enabled: enabled && !!params.q,
+    enabled: enabled && (params.q !== undefined || params.sort_by !== undefined),
     staleTime: 2 * 60 * 1000,
     retry: false,
   });

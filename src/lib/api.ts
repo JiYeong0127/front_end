@@ -139,15 +139,19 @@ export const quitAccount = (): Promise<void> =>
 
 // 논문 검색
 export const searchPapers = (
-  q: string,
+  q?: string,
   page: number = 1,
   categories?: string | string[],
   sort_by?: string
 ): Promise<SearchPapersResponse> => {
   const params: Record<string, string | number> = {
-    q,
     page,
   };
+  
+  // q가 있을 때만 추가
+  if (q) {
+    params.q = q;
+  }
   
   if (categories) {
     if (Array.isArray(categories)) {
@@ -171,6 +175,10 @@ export const searchPapers = (
     page?: number;
     page_size?: number;
     pageSize?: number;
+    total_pages?: number;
+    has_next?: boolean;
+    has_prev?: boolean;
+    is_approximate?: boolean;
   };
 
   return api.get<SearchPapersResponse | ServerResponse>(endpoints.papers.search, {
@@ -190,6 +198,10 @@ export const searchPapers = (
       total: serverData.total || 0,
       page: serverData.page || 1,
       pageSize: serverData.page_size || serverData.pageSize || 10,
+      totalPages: serverData.total_pages,
+      hasNext: serverData.has_next,
+      hasPrev: serverData.has_prev,
+      isApproximate: serverData.is_approximate,
     };
     
     return response;
@@ -364,6 +376,10 @@ export const fetchViewedPapers = (page: number = 1, limit: number = 10): Promise
     page?: number;
     page_size?: number;
     pageSize?: number;
+    total_pages?: number;
+    has_next?: boolean;
+    has_prev?: boolean;
+    is_approximate?: boolean;
   };
 
   return api.get<SearchPapersResponse | ServerResponse>(endpoints.papers.viewed, {
@@ -382,6 +398,10 @@ export const fetchViewedPapers = (page: number = 1, limit: number = 10): Promise
       total: serverData.total || 0,
       page: serverData.page || page,
       pageSize: serverData.page_size || serverData.pageSize || limit,
+      totalPages: serverData.total_pages,
+      hasNext: serverData.has_next,
+      hasPrev: serverData.has_prev,
+      isApproximate: serverData.is_approximate,
     };
     
     return response;
@@ -524,6 +544,10 @@ export interface SearchPapersResponse {
   total: number;
   page: number;
   pageSize: number;
+  totalPages?: number;
+  hasNext?: boolean;
+  hasPrev?: boolean;
+  isApproximate?: boolean;
 }
 
 export interface BookmarkResponse {

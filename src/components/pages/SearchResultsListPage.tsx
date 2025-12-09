@@ -19,6 +19,7 @@ export function SearchResultsListPage() {
   const searchQuery = searchParams.get('q') || '';
   const categoriesParam = searchParams.get('categories');
   const pageParam = searchParams.get('page');
+  const sortByParam = searchParams.get('sort_by');
   
   // URL에서 카테고리 파라미터 파싱 (메모이제이션)
   const selectedCategories = useMemo(() => {
@@ -31,6 +32,11 @@ export function SearchResultsListPage() {
   const currentPage = useMemo(() => {
     return pageParam ? parseInt(pageParam, 10) : 1;
   }, [pageParam]);
+  
+  // URL에서 정렬 기준 파라미터 파싱
+  const sortBy = useMemo(() => {
+    return sortByParam || undefined;
+  }, [sortByParam]);
   
   const [elapsedTime, setElapsedTime] = useState(0);
   const { handlePaperClick, handleBookmark } = usePaperActions();
@@ -51,7 +57,8 @@ export function SearchResultsListPage() {
     q: searchQuery,
     categories: selectedCategories.length > 0 ? selectedCategories : undefined,
     page: currentPage,
-  }), [searchQuery, selectedCategories, currentPage]);
+    sort_by: sortBy,
+  }), [searchQuery, selectedCategories, currentPage, sortBy]);
 
   // API에서 검색 결과 가져오기
   const { data: searchData, isLoading, isError, error, refetch } = useSearchPapersQuery(

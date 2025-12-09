@@ -19,6 +19,7 @@ import { UnifiedPaperCardProps } from '../../types/paper';
  * - 'search': 검색 결과 형태 (update_count/update_date, categories 표시)
  * - 'compact': 컴팩트 형태 (categories만 표시)
  * - 'recommended': 추천 논문 형태 (categories, summary 표시)
+ * - 'popular': 인기 논문 형태 (제목, 저자, update_date, categories만 표시)
  * 
  * @example
  * ```tsx
@@ -121,6 +122,82 @@ export function UnifiedPaperCard({
       </TooltipProvider>
     );
   };
+
+  // Popular variant: 인기 논문 형태 (제목, 저자, update_date, categories만 표시)
+  if (variant === 'popular') {
+    return (
+      <div 
+        className={`transition-shadow hover:shadow-md relative cursor-pointer bg-white rounded-lg border border-gray-200 p-4 md:p-6 ${className || ''}`}
+        onClick={handleCardClick}
+      >
+        {renderBookmark()}
+
+        <div className="space-y-3">
+          {/* 제목 */}
+          <h3 
+            className="line-clamp-2 cursor-pointer hover:text-[#4FA3D1] transition-colors break-words" 
+            style={{ color: '#215285' }}
+            onClick={handleCardClick}
+          >
+            {title}
+          </h3>
+
+          {/* 저자 */}
+          <div className="text-sm text-gray-600 break-words">
+            <div 
+              ref={authorsRef}
+              className={`${isAuthorsExpanded ? '' : 'line-clamp-2'}`}
+            >
+              저자: {authorsText}
+            </div>
+            {showExpandButton && (
+              <button
+                type="button"
+                className="mt-1 text-sm text-[#215285] hover:underline transition-colors"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setIsAuthorsExpanded(!isAuthorsExpanded);
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.textDecoration = 'underline';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.textDecoration = 'none';
+                }}
+              >
+                {isAuthorsExpanded ? '간략히' : '더보기'}
+              </button>
+            )}
+          </div>
+
+          {/* 업데이트 날짜 */}
+          {update_date && (
+            <div className="text-sm text-gray-600">
+              업데이트: {update_date}
+            </div>
+          )}
+
+          {/* 카테고리 */}
+          {showCategories && categories && categories.length > 0 && (
+            <div className="flex flex-wrap gap-2">
+              {categories.map((category, index) => (
+                <span
+                  key={index}
+                  className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium"
+                  style={{
+                    backgroundColor: '#EAF4FA',
+                    color: '#4FA3D1',
+                  }}
+                >
+                  {category}
+                </span>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  }
 
   // Search variant: 검색 결과 형태
   if (variant === 'search') {

@@ -44,7 +44,6 @@ export function HomePage() {
         />
         <CategorySearch onCategorySelect={handleCategorySelect} />
         <PopularPapers 
-          bookmarkedPaperIds={bookmarkedPaperIds.map(id => parseInt(id))}
           onToggleBookmark={handleBookmark}
           onPaperClick={handlePaperClick}
         />

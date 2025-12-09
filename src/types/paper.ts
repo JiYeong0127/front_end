@@ -65,7 +65,7 @@ export interface BasePaperCardProps {
  */
 export interface PaperCardVariant {
   /** 카드 스타일 variant */
-  variant?: 'default' | 'list' | 'search' | 'compact' | 'recommended';
+  variant?: 'default' | 'list' | 'search' | 'compact' | 'recommended' | 'popular';
   /** 요약 표시 여부 */
   showSummary?: boolean;
   /** 번역된 요약 표시 여부 */
