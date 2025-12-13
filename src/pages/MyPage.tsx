@@ -1,23 +1,33 @@
-import React, { useState, useRef } from 'react';
+/**
+ * 마이페이지 컴포넌트
+ * 
+ * 기능: 사용자 프로필 정보 표시 및 수정, 관심 카테고리 설정, 최근 본 논문 및 내 서재 링크 제공
+ */
+import { useState, useRef } from 'react';
 import { Eye, EyeOff, User, Key, Clock, Bookmark, ChevronRight, LogOut, Camera } from 'lucide-react';
-import { Header } from '../layout/Header';
-import { Footer } from '../layout/Footer';
-import { Card, CardContent, CardHeader } from '../ui/card';
-import { Button } from '../ui/button';
-import { Input } from '../ui/input';
-import { Label } from '../ui/label';
-import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '../ui/tooltip';
-import { ScrollToTopButton } from '../layout/ScrollToTopButton';
-import { useNavigation } from '../../hooks/useNavigation';
-import { useAuthStore } from '../../store/authStore';
-import { useUsernameExistsQuery } from '../../hooks/api/useUsernameExists';
-import { useMyProfileQuery } from '../../hooks/api/useMyProfile';
-import { UserProfile } from '../../types/auth';
-import { useLogoutMutation } from '../../hooks/api/useLogout';
-import { UserInterestCategory } from '../category/UserInterestCategory';
+import { Header } from '../components/layout/Header';
+import { Footer } from '../components/layout/Footer';
+import { Card, CardContent, CardHeader } from '../components/ui/card';
+import { Button } from '../components/ui/button';
+import { Input } from '../components/ui/input';
+import { Label } from '../components/ui/label';
+import { Avatar, AvatarFallback, AvatarImage } from '../components/ui/avatar';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '../components/ui/tooltip';
+import { ScrollToTopButton } from '../components/layout/ScrollToTopButton';
+import { useNavigation } from '../hooks/useNavigation';
+import { useAuthStore } from '../store/authStore';
+import { useUsernameExistsQuery } from '../hooks/api/useUsernameExists';
+import { useMyProfileQuery } from '../hooks/api/useMyProfile';
+import { UserProfile } from '../types/auth';
+import { useLogoutMutation } from '../hooks/api/useLogout';
+import { UserInterestCategory } from '../components/category/UserInterestCategory';
 import { toast } from 'sonner';
 import { Loader2 } from 'lucide-react';
+
+const COLORS = {
+  primary: '#215285',
+  accent: '#4FA3D1',
+};
 
 export function MyPage() {
   const [showPasswordChange, setShowPasswordChange] = useState(false);
@@ -34,21 +44,13 @@ export function MyPage() {
   const isLoggedIn = useAuthStore((state) => state.isLoggedIn);
   const updateUserId = useAuthStore((state) => state.updateUserId);
   const { goToRecentPapers, goToMyLibrary, goToQuitAccount } = useNavigation();
-
-  // 사용자 프로필 정보 가져오기
   const { data: profile, isLoading, isError } = useMyProfileQuery();
-  
-  // 프로필 데이터가 있으면 사용, 없으면 store에서 가져오기
   const name = (profile as UserProfile | undefined)?.name || '';
   const userId = (profile as UserProfile | undefined)?.username || '';
-
-  // 아이디 중복 확인 (새 아이디 입력 시)
   const usernameExistsQuery = useUsernameExistsQuery(
     newUserId,
     showIdChange && newUserId.length > 0 && newUserId !== userId
   );
-
-  // 로그아웃 mutation
   const { mutate: handleLogout, isPending: isLoggingOut } = useLogoutMutation();
 
   const handleProfileImageClick = () => {
@@ -109,7 +111,6 @@ export function MyPage() {
     toast.success('비밀번호가 변경되었습니다');
   };
 
-  // 로딩 중
   if (isLoading) {
     return (
       <div className="min-h-screen flex flex-col">
@@ -125,7 +126,6 @@ export function MyPage() {
     );
   }
 
-  // 에러 발생 시 (401은 useMyProfileQuery에서 처리)
   if (isError && !isLoggedIn) {
     return (
       <div className="min-h-screen flex flex-col">
@@ -144,8 +144,8 @@ export function MyPage() {
     <div className="min-h-screen flex flex-col">
       <Header />
       <main className="flex-1 bg-gray-50">
-        <div className="max-w-[1200px] mx-auto px-4 md:px-6 lg:px-10 py-8">
-          <Card className="mb-8 shadow-md" style={{ borderRadius: '12px' }}>
+        <div className="max-w-[var(--container-max-width)] mx-auto px-4 md:px-6 lg:px-10 py-8">
+          <Card className="mb-8 shadow-md rounded-xl">
             <CardHeader className="pb-4">
               <div className="flex flex-col md:flex-row items-center md:items-start gap-6">
                 {/* 프로필 사진 */}
@@ -163,12 +163,11 @@ export function MyPage() {
                             onClick={handleProfileImageClick}
                           >
                             <AvatarImage src={profileImage} alt={name} />
-                            <AvatarFallback style={{ backgroundColor: '#4FA3D1' }}>
+                            <AvatarFallback style={{ backgroundColor: COLORS.accent }}>
                               <User className="w-12 h-12 text-white" />
                             </AvatarFallback>
                           </Avatar>
                           
-                          {/* 카메라 아이콘 오버레이 */}
                           {isHoveringProfile && (
                             <div 
                               className="absolute bottom-0 right-0 w-8 h-8 rounded-full flex items-center justify-center cursor-pointer transition-opacity"
@@ -186,21 +185,18 @@ export function MyPage() {
                     </Tooltip>
                   </TooltipProvider>
                   
-                  {/* 숨겨진 파일 입력 */}
                   <input
                     ref={fileInputRef}
                     type="file"
                     accept="image/jpeg,image/png,image/jpg"
                     onChange={handleFileChange}
                     className="hidden"
-                  />
-                </div>
-                {/* 사용자 정보 텍스트 */}
+                    />
+                  </div>
                 <div className="flex-1 text-center md:text-left">
-                  <h2 className="text-[24px]" style={{ color: '#215285' }}>사용자 정보</h2>
+                  <h2 className="text-[var(--font-size-24)]" style={{ color: COLORS.primary }}>사용자 정보</h2>
                   <p className="text-sm text-gray-600 mt-1">계정 정보를 확인하고 변경할 수 있습니다</p>
                 </div>
-                {/* 로그아웃 버튼 */}
                 <div className="w-full md:w-auto flex justify-center md:justify-end md:self-start">
                   <Button
                     variant="outline"
@@ -216,7 +212,6 @@ export function MyPage() {
               </div>
             </CardHeader>
             <CardContent className="space-y-6">
-              {/* 사용자 이름 */}
               <div>
                 <Label className="text-gray-700">이름</Label>
                 <div className="mt-2 px-4 py-3 bg-gray-50 rounded-md border border-gray-200">
@@ -224,7 +219,6 @@ export function MyPage() {
                 </div>
               </div>
 
-              {/* 아이디 */}
               <div>
                 <div className="flex items-center justify-between mb-2">
                   <Label className="text-gray-700">아이디</Label>
@@ -258,7 +252,6 @@ export function MyPage() {
                       onChange={(e) => setNewUserId(e.target.value)}
                       className="h-10"
                     />
-                    {/* 아이디 중복 확인 메시지 */}
                     {newUserId && newUserId !== userId && (
                       <div className="text-sm">
                         {usernameExistsQuery.isLoading && (
@@ -279,8 +272,8 @@ export function MyPage() {
                     <div className="flex gap-2">
                       <Button
                         onClick={handleIdChange}
-                        className="flex-1 text-white"
-                        style={{ backgroundColor: '#215285' }}
+                        className="flex-1 text-white hover:opacity-90"
+                        style={{ backgroundColor: COLORS.primary }}
                         disabled={usernameExistsQuery.isLoading || usernameExistsQuery.data === true || !newUserId || newUserId === userId}
                       >
                         저장
@@ -300,7 +293,6 @@ export function MyPage() {
                 )}
               </div>
 
-              {/* 비밀번호 */}
               <div>
                 <div className="flex items-center justify-between mb-2">
                   <Label className="text-gray-700">비밀번호</Label>
@@ -370,8 +362,8 @@ export function MyPage() {
                     <div className="flex gap-2">
                       <Button
                         onClick={handlePasswordChange}
-                        className="flex-1 text-white"
-                        style={{ backgroundColor: '#215285' }}
+                        className="flex-1 text-white hover:opacity-90"
+                        style={{ backgroundColor: COLORS.primary }}
                       >
                         저장
                       </Button>
@@ -393,16 +385,14 @@ export function MyPage() {
             </CardContent>
           </Card>
 
-          {/* 관심 카테고리 선택 */}
           <UserInterestCategory />
 
-          {/* Quick Actions - 최근 본 논문과 내 서재만 표시 */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
             <Card className="cursor-pointer hover:shadow-md transition-shadow" onClick={goToRecentPapers}>
               <CardContent className="p-6">
                 <div className="flex items-center justify-between">
                   <div>
-                    <Clock className="h-8 w-8 mb-2" style={{ color: '#4FA3D1' }} />
+                    <Clock className="h-8 w-8 mb-2" style={{ color: COLORS.accent }} />
                     <h3 className="font-semibold mb-1">최근 본 논문</h3>
                     <p className="text-sm text-gray-600">최근에 조회한 논문 보기</p>
                   </div>
@@ -415,7 +405,7 @@ export function MyPage() {
               <CardContent className="p-6">
                 <div className="flex items-center justify-between">
                   <div>
-                    <Bookmark className="h-8 w-8 mb-2" style={{ color: '#4FA3D1' }} />
+                    <Bookmark className="h-8 w-8 mb-2" style={{ color: COLORS.accent }} />
                     <h3 className="font-semibold mb-1">내 서재</h3>
                     <p className="text-sm text-gray-600">북마크한 논문 관리</p>
                   </div>
@@ -425,7 +415,6 @@ export function MyPage() {
             </Card>
           </div>
 
-          {/* 회원 탈퇴 버튼 */}
           <Card className="mb-6">
             <CardContent className="p-6">
               <Button

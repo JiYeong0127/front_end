@@ -1,6 +1,18 @@
 import { useNavigation } from '../../hooks/useNavigation';
 
 /**
+ * 색상 상수
+ */
+const COLORS = {
+  primaryDark: '#215285',
+} as const;
+
+/**
+ * 기본 저작권 텍스트
+ */
+const DEFAULT_COPYRIGHT = '© 2025 RSRS. All rights reserved.';
+
+/**
  * Footer 컴포넌트 Props
  */
 interface FooterProps {
@@ -46,10 +58,13 @@ export function Footer({
   const linksToShow = customLinks || defaultLinks;
 
   return (
-    <footer className={`w-full py-12 ${className || ''}`} style={{ backgroundColor: '#215285' }}>
-      <div className="max-w-[1200px] mx-auto px-5">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-          {/* About */}
+    <footer 
+      className={`w-full py-12 ${className || ''}`} 
+      style={{ backgroundColor: COLORS.primaryDark }}
+    >
+      <div className="max-w-[var(--container-max-width)] mx-auto px-5">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {/* 서비스 정보 섹션 */}
           <div>
             <h4 className="text-white mb-4">RSRS</h4>
             <p className="text-gray-300">
@@ -57,13 +72,13 @@ export function Footer({
             </p>
           </div>
 
-          {/* Links */}
+          {/* 링크 섹션 */}
           {showLinks && (
             <div>
               <h4 className="text-white mb-4">바로가기</h4>
               <ul className="space-y-2">
-                {linksToShow.map((link, index) => (
-                  <li key={index}>
+                {linksToShow.map((link) => (
+                  <li key={link.label}>
                     <button
                       onClick={link.onClick}
                       className="text-gray-300 hover:text-white transition-colors"
@@ -77,9 +92,10 @@ export function Footer({
           )}
         </div>
 
+        {/* 저작권 섹션 */}
         <div className="mt-8 pt-8 border-t border-white/20 text-center">
           <p className="text-gray-300">
-            {copyrightText || '© 2025 RSRS. All rights reserved.'}
+            {copyrightText || DEFAULT_COPYRIGHT}
           </p>
         </div>
       </div>

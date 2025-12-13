@@ -1,18 +1,30 @@
+/**
+ * 검색 결과 목록 페이지 컴포넌트
+ * 
+ * 기능: 논문 검색 결과 표시, 카테고리 필터링, 정렬, 페이지네이션
+ */
 import { useState, useMemo, useEffect, useRef } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { X, Loader2, RefreshCw } from 'lucide-react';
-import { Header } from '../layout/Header';
-import { SearchHeader } from '../layout/SearchHeader';
-import { UnifiedPaperCard } from '../papers/UnifiedPaperCard';
-import { CategoryFilter, getCategoryNameByCode } from '../category/CategoryFilter';
-import { Footer } from '../layout/Footer';
-import { ScrollToTopButton } from '../layout/ScrollToTopButton';
-import { PaginationControls } from '../ui/PaginationControls';
-import { Alert, AlertDescription } from '../ui/alert';
-import { Button } from '../ui/button';
-import { useSearchPapersQuery, SearchPapersParams, useBookmarksQuery } from '../../hooks/api';
-import { usePaperActions } from '../../hooks/usePaperActions';
+import { Header } from '../components/layout/Header';
+import { SearchHeader } from '../components/layout/SearchHeader';
+import { UnifiedPaperCard } from '../components/papers/UnifiedPaperCard';
+import { CategoryFilter, getCategoryNameByCode } from '../components/category/CategoryFilter';
+import { Footer } from '../components/layout/Footer';
+import { ScrollToTopButton } from '../components/layout/ScrollToTopButton';
+import { PaginationControls } from '../components/ui/PaginationControls';
+import { Alert, AlertDescription } from '../components/ui/alert';
+import { Button } from '../components/ui/button';
+import { useSearchPapersQuery, SearchPapersParams, useBookmarksQuery } from '../hooks/api';
+import { usePaperActions } from '../hooks/usePaperActions';
 import { useQueryClient } from '@tanstack/react-query';
+
+const COLORS = {
+  primary: '#215285',
+  accent: '#4FA3D1',
+  filterBg: '#EAF4FA',
+  filterBgHover: '#D5E9F5',
+};
 
 export function SearchResultsListPage() {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -21,22 +33,18 @@ export function SearchResultsListPage() {
   const pageParam = searchParams.get('page');
   const sortByParam = searchParams.get('sort_by');
   
-  // URL에서 카테고리 파라미터 파싱 (메모이제이션)
-  // API 명세: categories=cs.Al 형식 (쉼표로 구분 가능)
   const selectedCategories = useMemo(() => {
     return categoriesParam 
       ? categoriesParam.split(',').filter(Boolean)
       : [];
   }, [categoriesParam]);
   
-  // URL에서 페이지 파라미터 파싱
   const currentPage = useMemo(() => {
     return pageParam ? parseInt(pageParam, 10) : 1;
   }, [pageParam]);
   
-  // URL에서 정렬 기준 파라미터 파싱
   const sortBy = useMemo(() => {
-    return sortByParam || undefined;
+    return sortByParam || 'view_count';
   }, [sortByParam]);
   
   const [elapsedTime, setElapsedTime] = useState(0);
@@ -45,7 +53,6 @@ export function SearchResultsListPage() {
   const loadingStartTime = useRef<number | null>(null);
   const { data: bookmarks = [] } = useBookmarksQuery();
   
-  // 북마크 상태 확인 함수
   const isBookmarked = (paperId: string | number) => {
     return bookmarks.some(b => {
       const bookmarkPaperId = b.paper_id || (b.paper?.id ? String(b.paper.id) : null);
@@ -53,7 +60,6 @@ export function SearchResultsListPage() {
     });
   };
 
-  // API 호출 파라미터 구성 (메모이제이션으로 불필요한 재생성 방지)
   const searchParams_obj: SearchPapersParams = useMemo(() => ({
     q: searchQuery,
     categories: selectedCategories.length > 0 ? selectedCategories : undefined,
@@ -61,14 +67,11 @@ export function SearchResultsListPage() {
     sort_by: sortBy,
   }), [searchQuery, selectedCategories, currentPage, sortBy]);
 
-  // API에서 검색 결과 가져오기
-  // 검색어가 있거나 카테고리가 선택되어 있으면 활성화 (카테고리만으로도 검색 가능)
   const { data: searchData, isLoading, isError, error, refetch } = useSearchPapersQuery(
     searchParams_obj,
     !!searchQuery || selectedCategories.length > 0
   );
 
-  // 로딩 시간 추적
   useEffect(() => {
     if (isLoading) {
       loadingStartTime.current = Date.now();
@@ -89,88 +92,97 @@ export function SearchResultsListPage() {
     }
   }, [isLoading]);
 
-  // 서버에서 받은 데이터 사용
   const papers = searchData?.papers || [];
   const totalPages = searchData?.total ? Math.ceil(searchData.total / (searchData.pageSize || 10)) : 0;
-  
-  // 연도 필터 제거: 모든 논문 표시
-  // const filteredPapers = papers.filter(paper => {
-  //   // year가 없으면 필터링에서 제외 (표시)
-  //   if (!paper.year) {
-  //     return true;
-  //   }
-  //   
-  //   const paperYear = typeof paper.year === 'string' ? parseInt(paper.year) : paper.year;
-  //   const numericYear = Number(paperYear);
-  //   
-  //   // 유효한 숫자가 아니면 필터링에서 제외 (표시)
-  //   if (isNaN(numericYear)) {
-  //     return true;
-  //   }
-  //   
-  //   // 유효한 숫자면 범위 체크
-  //   return numericYear >= yearRange[0] && numericYear <= yearRange[1];
-  // });
-  
-  const filteredPapers = papers;
-  const currentPapers = filteredPapers;
+
+  const updateSearchParams = (updater: (params: URLSearchParams) => void) => {
+    const newSearchParams = new URLSearchParams(searchParams);
+    updater(newSearchParams);
+    setSearchParams(newSearchParams);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
 
   const handleCategorySelect = (categoryCode: string) => {
     const newCategories = selectedCategories.includes(categoryCode)
       ? selectedCategories.filter(code => code !== categoryCode)
       : [...selectedCategories, categoryCode];
     
-    // URL 업데이트
-    const newSearchParams = new URLSearchParams(searchParams);
-    if (newCategories.length > 0) {
-      newSearchParams.set('categories', newCategories.join(','));
-    } else {
-      newSearchParams.delete('categories');
-    }
-    newSearchParams.set('page', '1'); // 첫 페이지로 리셋
-    setSearchParams(newSearchParams);
-    
-    // 스크롤을 맨 위로 이동
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    updateSearchParams((params) => {
+      if (newCategories.length > 0) {
+        params.set('categories', newCategories.join(','));
+      } else {
+        params.delete('categories');
+      }
+      params.set('page', '1');
+    });
   };
 
   const handleRemoveCategory = (categoryCode: string) => {
     const newCategories = selectedCategories.filter(code => code !== categoryCode);
     
-    // URL 업데이트
-    const newSearchParams = new URLSearchParams(searchParams);
-    if (newCategories.length > 0) {
-      newSearchParams.set('categories', newCategories.join(','));
-    } else {
-      newSearchParams.delete('categories');
-    }
-    newSearchParams.set('page', '1'); // 첫 페이지로 리셋
-    setSearchParams(newSearchParams);
-    
-    // 스크롤을 맨 위로 이동
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    updateSearchParams((params) => {
+      if (newCategories.length > 0) {
+        params.set('categories', newCategories.join(','));
+      } else {
+        params.delete('categories');
+      }
+      params.set('page', '1');
+    });
   };
 
   const handleClearAllFilters = () => {
-    const newSearchParams = new URLSearchParams(searchParams);
-    newSearchParams.delete('categories');
-    newSearchParams.set('page', '1');
-    setSearchParams(newSearchParams);
+    updateSearchParams((params) => {
+      params.delete('categories');
+      params.set('page', '1');
+    });
   };
 
   const handleSearch = (query: string) => {
     const newSearchParams = new URLSearchParams();
     newSearchParams.set('q', query);
-    // 검색 시 카테고리와 페이지는 유지하지 않고 리셋
     setSearchParams(newSearchParams);
   };
 
   const handlePageChange = (page: number) => {
-    const newSearchParams = new URLSearchParams(searchParams);
-    newSearchParams.set('page', page.toString());
-    setSearchParams(newSearchParams);
-    // 스크롤을 맨 위로 이동
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    updateSearchParams((params) => {
+      params.set('page', page.toString());
+    });
+  };
+
+  const getErrorMessage = (error: unknown): string => {
+    if (error instanceof Error) {
+      if (error.message.includes('timeout') || error.message.includes('타임아웃') || error.message.includes('시간이 초과')) {
+        return '응답 시간이 초과되었습니다. 서버 응답이 지연되고 있습니다. 잠시 후 다시 시도해주세요.';
+      }
+      if (error.message.includes('네트워크') || error.message.includes('연결')) {
+        return error.message;
+      }
+      return error.message;
+    }
+    return '검색 중 오류가 발생했습니다.';
+  };
+
+  const handleRetry = () => {
+    queryClient.invalidateQueries({ queryKey: ['papers', 'search'] });
+    refetch();
+  };
+
+  const getSearchResultText = () => {
+    if (searchQuery) {
+      return (
+        <>
+          <span className="text-[#215285]">"{searchQuery}"</span>에 대한 검색 결과 
+        </>
+      );
+    }
+    if (selectedCategories.length > 0) {
+      return (
+        <>
+          카테고리 <span className="text-[#215285]">"{selectedCategories.map(c => getCategoryNameByCode(c)).join(', ')}"</span>에 대한 검색 결과
+        </>
+      );
+    }
+    return '검색 결과';
   };
 
   return (
@@ -178,12 +190,10 @@ export function SearchResultsListPage() {
       <Header />
       <SearchHeader initialQuery={searchQuery} onSearch={handleSearch} />
       <main className="flex-1 bg-gray-50">
-        <div className="max-w-[1400px] mx-auto px-4 md:px-6 lg:px-10 py-8">
-          <div className="flex gap-6 lg:gap-8">
-            {/* 좌측 필터 영역 */}
+        <div className="max-w-[var(--container-max-width-large)] mx-auto px-4 md:px-6 lg:px-10 py-8">
+          <div className="flex gap-6">
             <div className="hidden lg:flex lg:flex-col lg:w-64 lg:flex-shrink-0 lg:gap-4">
               <div className="sticky top-4 space-y-4">
-                {/* 카테고리 필터 */}
                 <div>
                   <CategoryFilter 
                     selectedCategories={selectedCategories}
@@ -193,10 +203,7 @@ export function SearchResultsListPage() {
               </div>
             </div>
 
-            {/* 우측 검색 결과 영역 */}
             <div className="flex-1 min-w-0">
-
-              {/* Loading State */}
               {isLoading && (
                 <div className="flex flex-col items-center justify-center py-12">
                   <Loader2 className="h-8 w-8 animate-spin mb-4" style={{ color: '#4FA3D1' }} />
@@ -209,85 +216,46 @@ export function SearchResultsListPage() {
                 </div>
               )}
 
-              {/* Error State */}
               {isError && (
                 <Alert variant="destructive" className="mb-6">
                   <AlertDescription className="flex flex-col gap-3">
-                    <div>
-                      {(() => {
-                        if (error instanceof Error) {
-                          // 타임아웃 에러 확인
-                          if (error.message.includes('timeout') || error.message.includes('타임아웃') || error.message.includes('시간이 초과')) {
-                            return '응답 시간이 초과되었습니다. 서버 응답이 지연되고 있습니다. 잠시 후 다시 시도해주세요.';
-                          }
-                          // 네트워크 에러 확인
-                          if (error.message.includes('네트워크') || error.message.includes('연결')) {
-                            return error.message;
-                          }
-                          return error.message;
-                        }
-                        return '검색 중 오류가 발생했습니다.';
-                      })()}
-                    </div>
+                    <div>{getErrorMessage(error)}</div>
                     <Button
                       variant="outline"
                       size="sm"
-                      onClick={() => {
-                        queryClient.invalidateQueries({ queryKey: ['papers', 'search'] });
-                        refetch();
-                      }}
+                      onClick={handleRetry}
                       className="self-start"
                       style={{ borderColor: '#4FA3D1', color: '#4FA3D1' }}
                     >
                       <RefreshCw className="h-4 w-4 mr-2" />
                       다시 시도
                     </Button>
-                  </AlertDescription>
+                    </AlertDescription>
                 </Alert>
               )}
 
-              {/* Results */}
               {!isLoading && !isError && (
                 <>
-                  {/* Search Info */}
                   <div className="mb-6">
                     <p className="text-gray-600">
-                      {searchQuery ? (
-                        <>
-                          <span className="text-[#215285]">"{searchQuery}"</span>에 대한 검색 결과 
-                        </>
-                      ) : selectedCategories.length > 0 ? (
-                        <>
-                          카테고리 <span className="text-[#215285]">"{selectedCategories.map(c => getCategoryNameByCode(c)).join(', ')}"</span>에 대한 검색 결과
-                        </>
-                      ) : (
-                        '검색 결과'
-                      )}
+                      {getSearchResultText()}
                       <span className="ml-2 text-sm text-gray-500">
-                        ({searchData?.total || 0}개의 논문{searchData?.total && searchData.total > filteredPapers.length ? `, ${filteredPapers.length}개 표시` : ''})
+                        ({searchData?.total || 0}개의 논문{searchData?.total && searchData.total > papers.length ? `, ${papers.length}개 표시` : ''})
                       </span>
                     </p>
                     
-                    {/* 선택된 필터 표시 */}
                     {selectedCategories.length > 0 && (
                       <div className="mt-3 flex items-center gap-2 flex-wrap">
                         <span className="text-sm text-gray-500">필터:</span>
                         
-                        {/* 카테고리 필터 */}
                         {selectedCategories.map((category) => (
                           <button
                             key={category}
                             onClick={() => handleRemoveCategory(category)}
-                            className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-sm transition-colors"
+                            className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-sm hover:opacity-80 transition-opacity"
                             style={{ 
-                              backgroundColor: '#EAF4FA', 
-                              color: '#4FA3D1',
-                            }}
-                            onMouseEnter={(e) => {
-                              e.currentTarget.style.backgroundColor = '#D5E9F5';
-                            }}
-                            onMouseLeave={(e) => {
-                              e.currentTarget.style.backgroundColor = '#EAF4FA';
+                              backgroundColor: COLORS.filterBg, 
+                              color: COLORS.accent,
                             }}
                           >
                             {getCategoryNameByCode(category)}
@@ -298,7 +266,8 @@ export function SearchResultsListPage() {
                         {selectedCategories.length > 1 && (
                           <button
                             onClick={handleClearAllFilters}
-                            className="text-sm text-gray-500 hover:text-[#4FA3D1] underline"
+                            className="text-sm text-gray-500 hover:underline"
+                            style={{ color: COLORS.accent }}
                           >
                             모두 지우기
                           </button>
@@ -307,10 +276,9 @@ export function SearchResultsListPage() {
                     )}
                   </div>
 
-                  {/* Paper List */}
                   <div className="space-y-4 mb-12">
-                    {currentPapers.length > 0 ? (
-                      currentPapers.map((paper) => (
+                    {papers.length > 0 ? (
+                      papers.map((paper) => (
                           <UnifiedPaperCard
                             key={paper.id}
                             paperId={paper.id}
@@ -319,6 +287,8 @@ export function SearchResultsListPage() {
                             update_count={paper.update_count}
                             update_date={paper.update_date}
                             categories={paper.categories}
+                            journal={paper.journal_ref}
+                            showJournal={true}
                             variant="search"
                             onPaperClick={handlePaperClick}
                             onToggleBookmark={handleBookmark}
@@ -336,7 +306,6 @@ export function SearchResultsListPage() {
                     )}
                   </div>
 
-                  {/* Pagination */}
                   <PaginationControls
                     currentPage={currentPage}
                     totalPages={totalPages}

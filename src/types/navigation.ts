@@ -1,3 +1,9 @@
+/**
+ * 네비게이션 관련 타입 정의
+ * 
+ * 기능: 페이지 라우팅 및 네비게이션 핸들러 타입 정의
+ */
+
 export type Page = 
   | 'home' 
   | 'login' 
@@ -25,6 +31,6 @@ export interface NavigationHandlers {
 export interface NavigationParams {
   paperId?: number;
   searchQuery?: string;
-  [key: string]: any;
+  [key: string]: unknown;
 }
 

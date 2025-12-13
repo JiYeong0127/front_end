@@ -1,21 +1,25 @@
-import React, { useState, useCallback } from 'react';
+/**
+ * 회원 탈퇴 페이지 컴포넌트
+ * 
+ * 기능: 사용자 계정 삭제 처리 및 확인 절차 제공
+ */
+import { useState, useCallback } from 'react';
 import { Eye, EyeOff } from 'lucide-react';
-import { Button } from '../ui/button';
-import { Input } from '../ui/input';
-import { Label } from '../ui/label';
-import { Card, CardContent, CardHeader } from '../ui/card';
-import { Alert, AlertDescription } from '../ui/alert';
-import { Header } from '../layout/Header';
-import { Footer } from '../layout/Footer';
-import { ScrollToTopButton } from '../layout/ScrollToTopButton';
-import { useNavigation } from '../../hooks/useNavigation';
-import { useQuitAccountMutation } from '../../hooks/api/useQuitAccount';
-import { useMyProfileQuery } from '../../hooks/api/useMyProfile';
-import { login } from '../../lib/api';
+import { Button } from '../components/ui/button';
+import { Input } from '../components/ui/input';
+import { Label } from '../components/ui/label';
+import { Card, CardContent, CardHeader } from '../components/ui/card';
+import { Alert, AlertDescription } from '../components/ui/alert';
+import { Header } from '../components/layout/Header';
+import { Footer } from '../components/layout/Footer';
+import { ScrollToTopButton } from '../components/layout/ScrollToTopButton';
+import { useNavigation } from '../hooks/useNavigation';
+import { useQuitAccountMutation } from '../hooks/api/useQuitAccount';
+import { useMyProfileQuery } from '../hooks/api/useMyProfile';
+import { login } from '../lib/api';
 import { toast } from 'sonner';
-import logo from '../../assets/logo.png';
+import logo from '../assets/logo.png';
 
-// 상수 정의
 const BUTTON_HEIGHT = 'h-12';
 const RED_BUTTON_STYLE = 'flex-1 h-12 border-red-600 text-red-600 hover:bg-red-50 hover:text-red-700 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-transparent';
 const CANCEL_BUTTON_STYLE = 'flex-1 h-12';
@@ -41,7 +45,6 @@ export function QuitAccountPage() {
   const isDisabled = isVerifying || quitAccountMutation.isPending;
   const isFormValid = Boolean(username && password);
 
-  // 상태 초기화 함수
   const resetForm = useCallback(() => {
     setUsername('');
     setPassword('');
@@ -49,7 +52,6 @@ export function QuitAccountPage() {
     setShowFinalConfirm(false);
   }, []);
 
-  // 아이디/비밀번호 검증
   const validateInputs = useCallback((): boolean => {
     if (!username || !password) {
       toast.error('아이디와 비밀번호를 모두 입력해주세요');
@@ -64,7 +66,6 @@ export function QuitAccountPage() {
     return true;
   }, [username, password, userId]);
 
-  // 아이디/비밀번호 확인 처리
   const handleVerification = useCallback(async (e: React.FormEvent) => {
     e.preventDefault();
     
@@ -83,12 +84,10 @@ export function QuitAccountPage() {
     }
   }, [username, password, validateInputs]);
 
-  // 최종 탈퇴 처리
   const handleFinalQuit = useCallback(() => {
     quitAccountMutation.mutate();
   }, [quitAccountMutation]);
 
-  // 취소 버튼 클릭 처리
   const handleCancel = useCallback(() => {
     if (showFinalConfirm) {
       resetForm();
@@ -113,10 +112,9 @@ export function QuitAccountPage() {
             />
           </div>
 
-          {/* Quit Account Card */}
-          <Card className="shadow-lg" style={{ borderRadius: '12px' }}>
+          <Card className="shadow-lg rounded-xl">
             <CardHeader className="text-center pb-4">
-              <h2 className="text-[24px] mb-2">회원 탈퇴</h2>
+              <h2 className="text-[var(--font-size-24)] mb-2">회원 탈퇴</h2>
               <p className="text-gray-600 mt-2">
                 {showFinalConfirm ? (
                   '정말 탈퇴하시겠습니까?'
@@ -160,7 +158,6 @@ export function QuitAccountPage() {
   );
 }
 
-// 검증 폼 컴포넌트
 interface VerificationFormProps {
   username: string;
   password: string;
@@ -249,7 +246,6 @@ function VerificationForm({
   );
 }
 
-// 최종 확인 컴포넌트
 interface FinalConfirmationProps {
   isPending: boolean;
   onConfirm: () => void;

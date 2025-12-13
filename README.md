@@ -121,3 +121,95 @@ React + TypeScript 기반 논문 검색, 필터링, 북마크 기능을 제공�
 - **Tailwind CSS** - 스타일링
 - **Radix UI** - UI 컴포넌트 기반
 - **Lucide React** - 아이콘
+
+## 📡 API 사용 가이드
+
+### API 함수 직접 사용
+
+`src/lib/api.ts`에서 제공하는 API 함수를 직접 사용할 수 있습니다:
+
+```typescript
+import { searchPapers, getPaperDetail, login } from '@/lib/api';
+
+// 논문 검색
+const results = await searchPapers('transformer', 1, ['cs.AI'], 'view_count');
+
+// 논문 상세 조회
+const paper = await getPaperDetail('123');
+
+// 로그인
+const response = await login({ username: 'user', password: 'pass' });
+```
+
+### React Query 훅 사용 (권장)
+
+컴포넌트에서 API를 호출할 때는 React Query 훅을 사용하는 것을 권장합니다:
+
+```typescript
+import { useSearchPapersQuery, usePaperDetailQuery } from '@/hooks/api';
+
+function SearchComponent() {
+  // 논문 검색 쿼리
+  const { data, isLoading, error } = useSearchPapersQuery({
+    q: 'transformer',
+    page: 1,
+    categories: ['cs.AI'],
+    sort_by: 'view_count',
+  });
+
+  // 논문 상세 조회
+  const { data: paper } = usePaperDetailQuery('123');
+
+  if (isLoading) return <div>로딩 중...</div>;
+  if (error) return <div>에러 발생</div>;
+
+  return <div>{/* 검색 결과 렌더링 */}</div>;
+}
+```
+
+### 주요 API 함수 목록
+
+#### 인증 관련
+- `login(body: LoginRequest)` - 로그인
+- `register(body: RegisterRequest)` - 회원가입
+- `checkUsernameExists(username: string)` - 아이디 중복 확인
+- `fetchMyProfile()` - 사용자 프로필 조회
+- `logout()` - 로그아웃
+- `quitAccount()` - 회원 탈퇴
+
+#### 논문 관련
+- `searchPapers(q?, page, categories?, sort_by?, page_size?)` - 논문 검색
+- `getPaperDetail(paperId)` - 논문 상세 조회
+- `getRecommendations(paperId, topK, candidateK)` - 추천 논문 조회
+- `recordRecommendationClick(recommendationId)` - 추천 논문 클릭 기록
+- `fetchSearchHistory(userId, limit)` - 검색 기록 조회
+- `fetchViewedPapers(page, limit)` - 조회한 논문 조회
+
+#### 북마크 관련
+- `fetchBookmarks()` - 북마크 조회
+- `addBookmark(paperId, notes?)` - 북마크 추가
+- `deleteBookmark(bookmarkId)` - 북마크 삭제
+
+#### 관심 카테고리 관련
+- `getInterestCategories()` - 관심 카테고리 조회
+- `addInterestCategories(category_codes)` - 관심 카테고리 추가
+- `deleteInterestCategory(code)` - 관심 카테고리 삭제
+
+### 에러 처리
+
+API 함수는 자동으로 에러를 처리합니다:
+- 401 에러 시 자동 로그아웃 및 로그인 페이지로 리다이렉트
+- 네트워크 오류 시 적절한 에러 메시지 반환
+- 모든 에러는 `Error` 객체로 throw됩니다
+
+### 타입 안전성
+
+모든 API 함수는 TypeScript 타입이 정의되어 있어 타입 안전성을 보장합니다:
+
+```typescript
+import { Paper, SearchPapersResponse } from '@/lib/api';
+
+// 타입이 자동으로 추론됩니다
+const paper: Paper = await getPaperDetail('123');
+const results: SearchPapersResponse = await searchPapers('query');
+```

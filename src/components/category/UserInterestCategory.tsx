@@ -5,11 +5,34 @@ import { Button } from '../ui/button';
 import { toast } from 'sonner';
 import { useInterestCategories, useAddInterestCategories, useDeleteInterestCategory } from '../../hooks/api/useInterestCategories';
 
+/**
+ * 색상 상수
+ */
+const COLORS = {
+  primary: '#4FA3D1',
+  primaryDark: '#215285',
+  primaryHover: '#3B8AB8',
+  background: '#E0EAF2',
+  backgroundHover: '#C8D9E6',
+  hover: '#f3f4f6',
+  text: '#333',
+  white: '#ffffff',
+  border: '#e5e7eb',
+  warning: '#f59e0b',
+  warningShadow: 'rgba(245, 158, 11, 0.2)',
+} as const;
+
+/**
+ * 하위 카테고리 타입
+ */
 interface SubCategory {
   name: string;
   code: string;
 }
 
+/**
+ * 상위 카테고리 타입
+ */
 interface Category {
   id: string;
   name: string;
@@ -292,13 +315,13 @@ export function UserInterestCategory() {
   const expandedCategoryData = categories.find(cat => cat.id === expandedCategory);
 
   return (
-    <Card className="mb-8 shadow-md" style={{ borderRadius: '12px' }}>
+    <Card className="mb-8 shadow-md rounded-xl">
       <CardContent className="p-4 md:p-6">
         <div className="mb-6">
           <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-2 mb-2">
             <div className="flex items-center gap-2">
-              <Heart className="w-6 h-6" style={{ color: '#4FA3D1' }} />
-              <h2 className="text-[20px] md:text-[24px]" style={{ color: '#215285' }}>관심 카테고리 선택</h2>
+              <Heart className="w-6 h-6" style={{ color: COLORS.primary }} />
+              <h2 className="text-[var(--font-size-20)] md:text-[var(--font-size-24)]" style={{ color: COLORS.primaryDark }}>관심 카테고리 선택</h2>
             </div>
             <span className="text-sm text-gray-600">
               {selectedCategories.length} / {MAX_SELECTIONS}개 선택됨
@@ -319,17 +342,17 @@ export function UserInterestCategory() {
         {/* 선택된 카테고리 표시 */}
         {isLoadingInterests ? (
           <div className="mb-6 p-4 bg-gradient-to-r from-blue-50 to-cyan-50 rounded-lg border border-blue-100">
-            <p className="text-sm mb-3" style={{ color: '#215285' }}>
+            <p className="text-sm mb-3" style={{ color: COLORS.primaryDark }}>
               ✓ 선택한 카테고리 ({selectedCategories.length} / {MAX_SELECTIONS})
             </p>
             <div className="flex items-center gap-2">
-              <Loader2 className="w-4 h-4 animate-spin" style={{ color: '#215285' }} />
+              <Loader2 className="w-4 h-4 animate-spin" style={{ color: COLORS.primaryDark }} />
               <span className="text-sm text-gray-600">관심 카테고리를 불러오는 중...</span>
             </div>
           </div>
         ) : (
           <div className="mb-6 p-4 bg-gradient-to-r from-blue-50 to-cyan-50 rounded-lg border border-blue-100">
-            <p className="text-sm mb-3" style={{ color: '#215285' }}>
+            <p className="text-sm mb-3" style={{ color: COLORS.primaryDark }}>
               ✓ 선택한 카테고리 ({selectedCategories.length} / {MAX_SELECTIONS})
             </p>
             {selectedCategories.length > 0 ? (
@@ -339,8 +362,8 @@ export function UserInterestCategory() {
                     key={category.code}
                     className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-sm shadow-sm hover:shadow-md transition-all"
                     style={{ 
-                      backgroundColor: '#215285', 
-                      color: '#ffffff',
+                      backgroundColor: COLORS.primaryDark, 
+                      color: COLORS.white,
                     }}
                   >
                     <span>{category.name}</span>
@@ -370,22 +393,13 @@ export function UserInterestCategory() {
                   key={category.id}
                   onClick={() => handleMainCategoryClick(category.id)}
                   variant="outline"
-                  className="h-10 px-4 transition-all"
+                  className={`h-10 px-4 transition-all rounded-lg ${
+                    !isExpanded ? 'hover:bg-gray-100' : ''
+                  }`}
                   style={{
-                    backgroundColor: isExpanded ? '#4FA3D1' : 'transparent',
-                    color: isExpanded ? '#fff' : '#333',
-                    border: isExpanded ? '1px solid #4FA3D1' : '1px solid #e5e7eb',
-                    borderRadius: '8px',
-                  }}
-                  onMouseEnter={(e) => {
-                    if (!isExpanded) {
-                      e.currentTarget.style.backgroundColor = '#f3f4f6';
-                    }
-                  }}
-                  onMouseLeave={(e) => {
-                    if (!isExpanded) {
-                      e.currentTarget.style.backgroundColor = 'transparent';
-                    }
+                    backgroundColor: isExpanded ? COLORS.primary : 'transparent',
+                    color: isExpanded ? COLORS.white : COLORS.text,
+                    border: isExpanded ? `1px solid ${COLORS.primary}` : `1px solid ${COLORS.border}`,
                   }}
                 >
                   {category.name}
@@ -398,7 +412,7 @@ export function UserInterestCategory() {
         {/* 2차 카테고리 - 하위 세부 카테고리 */}
         {expandedCategoryData && (
           <div className="border-t border-gray-200 pt-6 animate-in fade-in slide-in-from-top-2 duration-300">
-            <h3 className="mb-4" style={{ color: '#215285' }}>
+            <h3 className="mb-4" style={{ color: COLORS.primaryDark }}>
               {expandedCategoryData.name} 세부 분야
             </h3>
             <div className="flex flex-wrap gap-2">
@@ -411,27 +425,17 @@ export function UserInterestCategory() {
                     key={subCategory.code}
                     onClick={() => handleCategoryClick(subCategory)}
                     disabled={isDisabled}
-                    className="px-4 py-2 rounded-full text-sm shadow-sm transition-all"
+                    className={`px-4 py-2 rounded-full text-sm shadow-sm transition-all ${
+                      isDisabled 
+                        ? 'cursor-not-allowed opacity-40' 
+                        : isSelected 
+                          ? 'hover:bg-[#3B8AB8] cursor-pointer' 
+                          : 'hover:bg-[#C8D9E6] cursor-pointer'
+                    }`}
                     style={{
-                      backgroundColor: isSelected ? '#4FA3D1' : '#E0EAF2',
-                      color: isSelected ? '#fff' : '#215285',
+                      backgroundColor: isSelected ? COLORS.primary : COLORS.background,
+                      color: isSelected ? COLORS.white : COLORS.primaryDark,
                       border: 'none',
-                      opacity: isDisabled ? 0.4 : 1,
-                      cursor: isDisabled ? 'not-allowed' : 'pointer',
-                    }}
-                    onMouseEnter={(e) => {
-                      if (!isDisabled) {
-                        if (isSelected) {
-                          e.currentTarget.style.backgroundColor = '#3B8AB8';
-                        } else {
-                          e.currentTarget.style.backgroundColor = '#C8D9E6';
-                        }
-                      }
-                    }}
-                    onMouseLeave={(e) => {
-                      if (!isDisabled) {
-                        e.currentTarget.style.backgroundColor = isSelected ? '#4FA3D1' : '#E0EAF2';
-                      }
                     }}
                   >
                     {subCategory.name}
@@ -448,8 +452,8 @@ export function UserInterestCategory() {
             onClick={handleSave}
             className="text-white hover:opacity-90 transition-all"
             style={{ 
-              backgroundColor: hasUnsavedChanges ? '#f59e0b' : '#215285',
-              boxShadow: hasUnsavedChanges ? '0 0 0 3px rgba(245, 158, 11, 0.2)' : 'none',
+              backgroundColor: hasUnsavedChanges ? COLORS.warning : COLORS.primaryDark,
+              boxShadow: hasUnsavedChanges ? `0 0 0 3px ${COLORS.warningShadow}` : 'none',
             }}
             disabled={selectedCategories.length === 0 || addMutation.isPending || deleteMutation.isPending}
           >
@@ -470,5 +474,4 @@ export function UserInterestCategory() {
     </Card>
   );
 }
-
 

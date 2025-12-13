@@ -1,8 +1,70 @@
-// API 통신 모듈
+/**
+ * API 통신 모듈
+ * 기능: Axios 인스턴스 설정, API 엔드포인트 정의, 모든 API 호출 함수 제공
+ */
 import axios, { AxiosError } from 'axios';
 import { LoginRequest, LoginResponse, RegisterRequest, RegisterResponse, UsernameExistsResponse, UserProfile } from '../types/auth';
 
 const BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://44.234.58.137';
+
+/**
+ * API 에러 응답 타입
+ */
+interface ApiErrorResponse {
+  message?: string;
+  error?: string;
+  detail?: string;
+}
+
+/**
+ * 추천 논문 서버 응답 아이템 타입
+ */
+interface RecommendationItem {
+  paper_id?: string;
+  id?: string;
+  _id?: string;
+  title?: string;
+  authors?: string | string[];
+  categories?: string | string[];
+  update_date?: string;
+  summary?: string;
+  abstract?: string;
+  journal_ref?: string | null;
+  recommendation_id?: string;
+}
+
+/**
+ * 북마크 서버 응답 아이템 타입
+ */
+interface BookmarkServerItem {
+  _id?: string;
+  id?: string;
+  doi?: string;
+  paper_id?: string;
+  notes?: string;
+  paper?: {
+    _id?: string;
+    id?: string;
+    title?: string;
+    authors?: string | string[];
+    categories?: string[];
+    update_date?: string;
+    summary?: string;
+    abstract?: string;
+  };
+}
+
+/**
+ * 검색 논문 서버 응답 아이템 타입
+ */
+interface SearchPaperServerItem {
+  id?: string | number;
+  title?: string;
+  authors?: string | string[];
+  categories?: string[];
+  journal_ref?: string | null;
+  [key: string]: unknown;
+}
 
 // Axios 인스턴스 생성 및 설정
 export const api = axios.create({
@@ -51,10 +113,10 @@ api.interceptors.request.use(
 // Response Interceptor: 에러 처리 및 401 자동 로그아웃
 api.interceptors.response.use(
   (response) => response,
-  (error: AxiosError) => {
+  (error: AxiosError<ApiErrorResponse>) => {
     if (error.response) {
       const status = error.response.status;
-      const data = error.response.data as any;
+      const data = error.response.data;
       
       if (status === 401) {
         localStorage.removeItem('access_token');
@@ -99,7 +161,12 @@ export const endpoints = {
 };
 
 // 인증 관련 API 함수
-// 로그인
+
+/**
+ * 로그인
+ * @param body - 로그인 요청 데이터 (username, password)
+ * @returns 로그인 응답 (access_token, username)
+ */
 export const login = (body: LoginRequest): Promise<LoginResponse> => {
   const params = new URLSearchParams();
   params.append('username', body.username);
@@ -114,36 +181,59 @@ export const login = (body: LoginRequest): Promise<LoginResponse> => {
   ).then(response => response.data);
 };
 
-// 회원가입
+/**
+ * 회원가입
+ * @param body - 회원가입 요청 데이터
+ * @returns 회원가입 응답
+ */
 export const register = (body: RegisterRequest): Promise<RegisterResponse> =>
   api.post<RegisterResponse>('/auth/register', body).then(response => response.data);
 
-// 아이디 중복 확인
+/**
+ * 아이디 중복 확인
+ * @param username - 확인할 사용자명
+ * @returns 중복 여부
+ */
 export const checkUsernameExists = (username: string): Promise<boolean> =>
   api.get<UsernameExistsResponse>('/auth/username-exists', { params: { username } })
     .then(res => res.data.exists);
 
-// 사용자 프로필 조회
+/**
+ * 사용자 프로필 조회
+ * @returns 사용자 프로필 정보
+ */
 export const fetchMyProfile = (): Promise<UserProfile> =>
   api.get<UserProfile>('/auth/me').then(res => res.data);
 
-// 로그아웃
+/**
+ * 로그아웃
+ */
 export const logout = (): Promise<void> =>
   api.post('/auth/logout').then(() => undefined);
 
-// 회원 탈퇴
+/**
+ * 회원 탈퇴
+ */
 export const quitAccount = (): Promise<void> =>
   api.delete('/auth/quit').then(() => undefined);
 
 // 논문 관련 API 함수
 
-// 논문 검색
-// API 명세: GET /papers/search?categories=cs.Al&q=transformer&sort_by=view_count&page=1
+/**
+ * 논문 검색
+ * @param q - 검색 키워드 (선택)
+ * @param page - 페이지 번호 (기본값: 1)
+ * @param categories - 카테고리 필터 (선택)
+ * @param sort_by - 정렬 기준 (선택)
+ * @param page_size - 페이지당 항목 수 (기본값: 10)
+ * @returns 검색 결과
+ */
 export const searchPapers = (
   q?: string,
   page: number = 1,
   categories?: string | string[],
-  sort_by?: string
+  sort_by?: string,
+  page_size?: number
 ): Promise<SearchPapersResponse> => {
   const params: Record<string, string | number> = {};
   
@@ -167,10 +257,13 @@ export const searchPapers = (
     }
   }
   
-  // sort_by가 있을 때만 추가
+  // sort_by가 있으면 추가 (기본값 view_count는 호출하는 쪽에서 설정)
   if (sort_by && sort_by.trim() !== '') {
     params.sort_by = sort_by.trim();
   }
+  
+  // 페이지당 항목 수 설정 (기본값 10, 인기 논문은 5개)
+  params.page_size = page_size || 10;
   
   // API 응답 구조 (이미지 명세 기준)
   type ServerResponse = {
@@ -190,9 +283,19 @@ export const searchPapers = (
   }).then(res => {
     const serverData = res.data as ServerResponse;
     
+    // items 배열의 각 논문에 journal_ref 필드 명시적으로 매핑
+    const papers = (serverData.items || []).map((item: SearchPaperServerItem): Paper => ({
+      id: item.id || '',
+      title: item.title || '',
+      authors: item.authors || [],
+      categories: item.categories || [],
+      journal_ref: item.journal_ref || null,
+      ...item,
+    }));
+    
     // API 명세에 맞춰 items 배열 사용
     const response: SearchPapersResponse = {
-      papers: serverData.items || [],
+      papers,
       total: serverData.total || 0,
       page: serverData.page || page,
       pageSize: serverData.page_size || 10,
@@ -206,17 +309,32 @@ export const searchPapers = (
   });
 };
 
-// 논문 상세 조회
+/**
+ * 논문 상세 조회
+ * @param paperId - 논문 ID
+ * @returns 논문 상세 정보
+ */
 export const getPaperDetail = (paperId: string | number): Promise<Paper> => {
   return api.get<Paper>(endpoints.papers.detail(paperId)).then(response => response.data);
 };
 
-// 논문 상세 조회 별칭
+/**
+ * 논문 상세 조회 별칭
+ * @param id - 논문 ID
+ * @returns 논문 상세 정보
+ */
 export const getPaperById = (id: string): Promise<Paper> => {
   return getPaperDetail(id);
 };
 
 // 추천 논문 조회: 상세 페이지 논문 기반 유사 논문 추천 (GET /recommendations/rl)
+/**
+ * 추천 논문 조회
+ * @param paperId - 기준 논문 ID
+ * @param topK - 반환할 추천 논문 수 (기본값: 6)
+ * @param candidateK - 후보 논문 수 (기본값: 100)
+ * @returns 추천 논문 배열
+ */
 export const getRecommendations = (
   paperId: string | number,
   topK: number = 6,
@@ -224,7 +342,7 @@ export const getRecommendations = (
 ): Promise<Paper[]> => {
   type ServerResponse = {
     // 추천 API 전용 필드
-    recommendations?: any[];
+    recommendations?: RecommendationItem[];
     // 기타 리스트형 응답 필드
     papers?: Paper[];
     results?: Paper[];
@@ -253,7 +371,7 @@ export const getRecommendations = (
 
       // 1) 추천 전용 구조: { recommendations: [...] }
       if (Array.isArray(serverData.recommendations)) {
-        return serverData.recommendations.map((item: any) => {
+        return serverData.recommendations.map((item: RecommendationItem): Paper => {
           const id = item.paper_id || item.id || item._id || '';
 
           const authors =
@@ -275,8 +393,10 @@ export const getRecommendations = (
             categories,
             update_date: item.update_date,
             // summary를 우선 사용, 없으면 abstract 사용
-            summary: (item as any).summary || (item as any).abstract,
-            abstract: (item as any).abstract,
+            summary: item.summary || item.abstract,
+            abstract: item.abstract,
+            // journal_ref 필드 명시적으로 매핑
+            journal_ref: item.journal_ref || null,
             // recommendation_id가 있으면 포함 (추천 논문 클릭 기록용)
             recommendation_id: item.recommendation_id || item._id || item.id,
           };
@@ -298,9 +418,9 @@ export const getRecommendations = (
     
     // 알 수 없는 응답 형식인 경우 빈 배열
     return [];
-  }).catch((error: AxiosError) => {
+  }).catch((error: AxiosError<ApiErrorResponse>) => {
     if (error.response?.data) {
-      const errorData = error.response.data as any;
+      const errorData = error.response.data;
       if (errorData.error) {
         throw new Error(errorData.error);
       }
@@ -312,13 +432,16 @@ export const getRecommendations = (
   });
 };
 
-// 추천 논문 클릭 기록: 추천 논문 클릭 시 서버에 기록 전송 (POST /recommendations/{recommendation_id}/click)
+/**
+ * 추천 논문 클릭 기록
+ * @param recommendationId - 추천 논문 ID
+ */
 export const recordRecommendationClick = (recommendationId: string): Promise<void> => {
   return api.post(`${endpoints.recommendations}/${recommendationId}/click`)
     .then(() => undefined)
-    .catch((error: AxiosError) => {
+    .catch((error: AxiosError<ApiErrorResponse>) => {
       if (error.response?.data) {
-        const errorData = error.response.data as any;
+        const errorData = error.response.data;
         if (errorData.error) {
           throw new Error(errorData.error);
         }
@@ -330,7 +453,11 @@ export const recordRecommendationClick = (recommendationId: string): Promise<voi
     });
 };
 
-// 추천 논문 상호작용 결과 저장: 체류 시간, 스크롤 깊이, 북마크 등 사용자 상호작용 저장 (POST /recommendations/{recommendation_id}/interactions)
+/**
+ * 추천 논문 상호작용 결과 저장
+ * @param recommendationId - 추천 논문 ID
+ * @param interaction - 상호작용 데이터 (체류 시간, 스크롤 깊이, 북마크 등)
+ */
 export const recordRecommendationInteraction = (
   recommendationId: string,
   interaction: RecommendationInteractionRequest
@@ -343,9 +470,9 @@ export const recordRecommendationInteraction = (
     }
   )
     .then(() => undefined)
-    .catch((error: AxiosError) => {
+    .catch((error: AxiosError<ApiErrorResponse>) => {
       if (error.response?.data) {
-        const errorData = error.response.data as any;
+        const errorData = error.response.data;
         if (errorData.error) {
           throw new Error(errorData.error);
         }
@@ -357,13 +484,23 @@ export const recordRecommendationInteraction = (
     });
 };
 
-// 검색 기록 조회
+/**
+ * 검색 기록 조회
+ * @param userId - 사용자 ID
+ * @param limit - 조회할 기록 수 (기본값: 20)
+ * @returns 검색 기록
+ */
 export const fetchSearchHistory = (userId: string, limit: number = 20): Promise<SearchHistoryResponse> =>
   api.get<SearchHistoryResponse>(endpoints.papers.searchHistory, {
     params: { user_id: userId, limit },
   }).then(res => res.data);
 
-// 조회한 논문 조회
+/**
+ * 조회한 논문 조회
+ * @param page - 페이지 번호 (기본값: 1)
+ * @param limit - 페이지당 항목 수 (기본값: 10)
+ * @returns 조회한 논문 목록
+ */
 export const fetchViewedPapers = (page: number = 1, limit: number = 10): Promise<SearchPapersResponse> => {
   type ServerResponse = {
     papers?: Paper[];
@@ -408,23 +545,28 @@ export const fetchViewedPapers = (page: number = 1, limit: number = 10): Promise
 
 // 북마크 관련 API 함수
 
-// 북마크 조회
+/**
+ * 북마크 조회
+ * @returns 북마크 목록
+ */
 export const fetchBookmarks = (): Promise<BookmarkItem[]> => {
-  return api.get<any>(endpoints.bookmarks).then(response => {
+  type BookmarksResponse = BookmarkServerItem[] | { items: BookmarkServerItem[] };
+  
+  return api.get<BookmarksResponse>(endpoints.bookmarks).then(response => {
     const data = response.data;
     
     // 응답이 { items: [...] } 형식인지 확인
-    let bookmarksArray: any[] = [];
+    let bookmarksArray: BookmarkServerItem[] = [];
     if (Array.isArray(data)) {
       bookmarksArray = data;
-    } else if (data && typeof data === 'object' && Array.isArray(data.items)) {
+    } else if (data && typeof data === 'object' && 'items' in data && Array.isArray(data.items)) {
       bookmarksArray = data.items;
     } else {
       return [];
     }
     
     // 북마크 배열을 BookmarkItem 형식으로 변환
-    return bookmarksArray.map((item: any) => {
+    return bookmarksArray.map((item: BookmarkServerItem): BookmarkItem => {
       // doi를 paper_id로 사용 (paper의 _id가 doi이므로)
       const paperId = item.doi || item.paper_id || '';
       
@@ -442,28 +584,42 @@ export const fetchBookmarks = (): Promise<BookmarkItem[]> => {
           summary: item.paper.summary,
           abstract: item.paper.abstract,
         } : undefined,
-      } as BookmarkItem;
+      };
     });
   });
 };
 
 // 관심 카테고리 관련 API 함수
 
-// 관심 카테고리 조회
+/**
+ * 관심 카테고리 조회
+ * @returns 사용자의 관심 카테고리 목록
+ */
 export const getInterestCategories = (): Promise<UserInterestsResponse> =>
   api.get<UserInterestsResponse>(endpoints.userInterests).then(res => res.data);
 
-// 관심 카테고리 추가
+/**
+ * 관심 카테고리 추가
+ * @param category_codes - 추가할 카테고리 코드 배열
+ */
 export const addInterestCategories = (category_codes: string[]): Promise<void> =>
   api.post(endpoints.userInterests, { category_codes }).then(() => undefined);
 
-// 관심 카테고리 삭제
+/**
+ * 관심 카테고리 삭제
+ * @param code - 삭제할 카테고리 코드
+ */
 export const deleteInterestCategory = (code: string): Promise<void> =>
   api.delete(endpoints.userInterests, {
     params: { codes: code },
   }).then(() => undefined);
 
-// 북마크 추가
+/**
+ * 북마크 추가
+ * @param paperId - 논문 ID (DOI)
+ * @param notes - 북마크 메모 (선택)
+ * @returns 북마크 추가 응답
+ */
 export const addBookmark = (paperId: string, notes?: string): Promise<AddBookmarkResponse> => {
   const body: AddBookmarkRequest = {
     doi: paperId,
@@ -475,9 +631,9 @@ export const addBookmark = (paperId: string, notes?: string): Promise<AddBookmar
   
     return api.post<AddBookmarkResponse>(endpoints.bookmarks, body)
     .then(response => response.data)
-    .catch((error: AxiosError) => {
+    .catch((error: AxiosError<ApiErrorResponse>) => {
       if (error.response?.data) {
-        const errorData = error.response.data as any;
+        const errorData = error.response.data;
         if (errorData.error) {
           throw new Error(errorData.error);
         }
@@ -489,7 +645,10 @@ export const addBookmark = (paperId: string, notes?: string): Promise<AddBookmar
     });
 };
 
-// 북마크 삭제
+/**
+ * 북마크 삭제
+ * @param bookmarkId - 북마크 ID
+ */
 export const deleteBookmark = (bookmarkId: string): Promise<void> => {
   return api.delete(`${endpoints.bookmarks}/${bookmarkId}`).then(() => undefined);
 };
@@ -535,6 +694,7 @@ export interface Paper {
   update_count?: number;
   update_date?: string;
   recommendation_id?: string;
+  journal_ref?: string | null;
 }
 
 export interface SearchPapersResponse {

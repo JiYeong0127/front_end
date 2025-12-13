@@ -1,3 +1,9 @@
+/**
+ * 인증 관련 타입 정의
+ * 
+ * 기능: 로그인, 회원가입, 사용자 프로필 관련 타입 정의
+ */
+
 export interface LoginRequest {
   username: string;
   password: string;

@@ -1,3 +1,9 @@
+/**
+ * 사용자 관련 타입 정의
+ * 
+ * 기능: 사용자 상태 및 액션 타입 정의
+ */
+
 export interface UserState {
   isLoggedIn: boolean;
   userName: string;

@@ -1,14 +1,19 @@
-import { Header } from '../layout/Header';
-import { HeroSection } from '../layout/HeroSection';
-import { RecentlyViewedPapers } from '../papers/RecentlyViewedPapers';
-import { CategorySearch } from '../category/CategorySearch';
-import { PopularPapers } from '../papers/PopularPapers';
-import { Footer } from '../layout/Footer';
-import { ScrollToTopButton } from '../layout/ScrollToTopButton';
-import { useNavigation } from '../../hooks/useNavigation';
-import { useAuthStore } from '../../store/authStore';
-import { useAppStore } from '../../store/useAppStore';
-import { usePaperActions } from '../../hooks/usePaperActions';
+/**
+ * 홈 페이지 컴포넌트
+ * 
+ * 기능: 메인 페이지로 검색, 카테고리 검색, 최근 본 논문, 인기 논문을 표시
+ */
+import { Header } from '../components/layout/Header';
+import { HeroSection } from '../components/layout/HeroSection';
+import { RecentlyViewedPapers } from '../components/papers/RecentlyViewedPapers';
+import { CategorySearch } from '../components/category/CategorySearch';
+import { PopularPapers } from '../components/papers/PopularPapers';
+import { Footer } from '../components/layout/Footer';
+import { ScrollToTopButton } from '../components/layout/ScrollToTopButton';
+import { useNavigation } from '../hooks/useNavigation';
+import { useAuthStore } from '../store/authStore';
+import { useAppStore } from '../store/useAppStore';
+import { usePaperActions } from '../hooks/usePaperActions';
 
 export function HomePage() {
   const { goToLogin, goToSearch, goToCategorySearch } = useNavigation();

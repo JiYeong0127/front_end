@@ -1,25 +1,35 @@
-import { Header } from '../layout/Header';
-import { Footer } from '../layout/Footer';
+/**
+ * 서비스 소개 페이지 컴포넌트
+ * 
+ * 기능: 서비스의 주요 기능과 장점을 소개
+ */
+import { Header } from '../components/layout/Header';
+import { Footer } from '../components/layout/Footer';
 import { BookOpen, Globe, Zap, Search, FileText, TrendingUp } from 'lucide-react';
-import { Card, CardContent } from '../ui/card';
-import { ScrollToTopButton } from '../layout/ScrollToTopButton';
+import { Card, CardContent } from '../components/ui/card';
+import { ScrollToTopButton } from '../components/layout/ScrollToTopButton';
+
+const COLORS = {
+  primary: '#215285',
+  accent: '#4FA3D1',
+  iconBg: '#EAF4FA',
+};
 
 export function ServiceIntroPage() {
   return (
     <div className="min-h-screen flex flex-col">
       <Header />
       <main className="flex-1">
-        {/* Features */}
         <section className="w-full py-20 bg-white">
-          <div className="max-w-[1200px] mx-auto px-4 md:px-6 lg:px-10">
-            <h2 className="text-3xl font-bold text-center mb-12" style={{ color: '#215285' }}>
+          <div className="max-w-[var(--container-max-width)] mx-auto px-4 md:px-6 lg:px-10">
+            <h2 className="text-3xl font-bold text-center mb-12" style={{ color: COLORS.primary }}>
               주요 기능
             </h2>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               <Card className="text-center">
                 <CardContent className="p-6">
-                  <div className="w-16 h-16 mx-auto mb-4 rounded-full flex items-center justify-center" style={{ backgroundColor: '#EAF4FA' }}>
-                    <Search className="h-8 w-8" style={{ color: '#4FA3D1' }} />
+                  <div className="w-16 h-16 mx-auto mb-4 rounded-full flex items-center justify-center" style={{ backgroundColor: COLORS.iconBg }}>
+                    <Search className="h-8 w-8" style={{ color: COLORS.accent }} />
                   </div>
                   <h3 className="text-xl font-semibold mb-2">스마트 검색</h3>
                   <p className="text-gray-600">
@@ -30,8 +40,8 @@ export function ServiceIntroPage() {
 
               <Card className="text-center">
                 <CardContent className="p-6">
-                  <div className="w-16 h-16 mx-auto mb-4 rounded-full flex items-center justify-center" style={{ backgroundColor: '#EAF4FA' }}>
-                    <Globe className="h-8 w-8" style={{ color: '#4FA3D1' }} />
+                  <div className="w-16 h-16 mx-auto mb-4 rounded-full flex items-center justify-center" style={{ backgroundColor: COLORS.iconBg }}>
+                    <Globe className="h-8 w-8" style={{ color: COLORS.accent }} />
                   </div>
                   <h3 className="text-xl font-semibold mb-2">자동 번역</h3>
                   <p className="text-gray-600">
@@ -42,8 +52,8 @@ export function ServiceIntroPage() {
 
               <Card className="text-center">
                 <CardContent className="p-6">
-                  <div className="w-16 h-16 mx-auto mb-4 rounded-full flex items-center justify-center" style={{ backgroundColor: '#EAF4FA' }}>
-                    <FileText className="h-8 w-8" style={{ color: '#4FA3D1' }} />
+                  <div className="w-16 h-16 mx-auto mb-4 rounded-full flex items-center justify-center" style={{ backgroundColor: COLORS.iconBg }}>
+                    <FileText className="h-8 w-8" style={{ color: COLORS.accent }} />
                   </div>
                   <h3 className="text-xl font-semibold mb-2">자동 요약</h3>
                   <p className="text-gray-600">
@@ -55,18 +65,17 @@ export function ServiceIntroPage() {
           </div>
         </section>
 
-        {/* Benefits */}
         <section className="w-full py-20 bg-gray-50">
-          <div className="max-w-[1200px] mx-auto px-4 md:px-6 lg:px-10">
-            <h2 className="text-3xl font-bold text-center mb-12" style={{ color: '#215285' }}>
+          <div className="max-w-[var(--container-max-width)] mx-auto px-4 md:px-6 lg:px-10">
+            <h2 className="text-3xl font-bold text-center mb-12" style={{ color: COLORS.primary }}>
               서비스 장점
             </h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <Card>
                 <CardContent className="p-6">
                   <div className="flex items-start gap-4">
-                    <div className="w-12 h-12 rounded-lg flex items-center justify-center flex-shrink-0" style={{ backgroundColor: '#EAF4FA' }}>
-                      <Zap className="h-6 w-6" style={{ color: '#4FA3D1' }} />
+                    <div className="w-12 h-12 rounded-lg flex items-center justify-center flex-shrink-0" style={{ backgroundColor: COLORS.iconBg }}>
+                      <Zap className="h-6 w-6" style={{ color: COLORS.accent }} />
                     </div>
                     <div>
                       <h3 className="text-xl font-semibold mb-2">빠른 검색</h3>
@@ -81,8 +90,8 @@ export function ServiceIntroPage() {
               <Card>
                 <CardContent className="p-6">
                   <div className="flex items-start gap-4">
-                    <div className="w-12 h-12 rounded-lg flex items-center justify-center flex-shrink-0" style={{ backgroundColor: '#EAF4FA' }}>
-                      <TrendingUp className="h-6 w-6" style={{ color: '#4FA3D1' }} />
+                    <div className="w-12 h-12 rounded-lg flex items-center justify-center flex-shrink-0" style={{ backgroundColor: COLORS.iconBg }}>
+                      <TrendingUp className="h-6 w-6" style={{ color: COLORS.accent }} />
                     </div>
                     <div>
                       <h3 className="text-xl font-semibold mb-2">인기 논문 추천</h3>
@@ -97,8 +106,8 @@ export function ServiceIntroPage() {
               <Card>
                 <CardContent className="p-6">
                   <div className="flex items-start gap-4">
-                    <div className="w-12 h-12 rounded-lg flex items-center justify-center flex-shrink-0" style={{ backgroundColor: '#EAF4FA' }}>
-                      <BookOpen className="h-6 w-6" style={{ color: '#4FA3D1' }} />
+                    <div className="w-12 h-12 rounded-lg flex items-center justify-center flex-shrink-0" style={{ backgroundColor: COLORS.iconBg }}>
+                      <BookOpen className="h-6 w-6" style={{ color: COLORS.accent }} />
                     </div>
                     <div>
                       <h3 className="text-xl font-semibold mb-2">개인화된 서재</h3>
@@ -113,8 +122,8 @@ export function ServiceIntroPage() {
               <Card>
                 <CardContent className="p-6">
                   <div className="flex items-start gap-4">
-                    <div className="w-12 h-12 rounded-lg flex items-center justify-center flex-shrink-0" style={{ backgroundColor: '#EAF4FA' }}>
-                      <FileText className="h-6 w-6" style={{ color: '#4FA3D1' }} />
+                    <div className="w-12 h-12 rounded-lg flex items-center justify-center flex-shrink-0" style={{ backgroundColor: COLORS.iconBg }}>
+                      <FileText className="h-6 w-6" style={{ color: COLORS.accent }} />
                     </div>
                     <div>
                       <h3 className="text-xl font-semibold mb-2">최근 본 논문</h3>

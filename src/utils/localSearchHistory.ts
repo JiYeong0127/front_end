@@ -1,3 +1,8 @@
+/**
+ * 로컬 검색 기록 관리 유틸리티
+ * 
+ * 기능: localStorage를 사용한 최근 검색어 저장 및 관리
+ */
 const STORAGE_KEY = 'recent_search_keywords';
 const DEFAULT_LIMIT = 20;
 
@@ -45,5 +50,3 @@ export const clearSearchKeywords = (): void => {
   if (typeof window === 'undefined') return;
   localStorage.removeItem(STORAGE_KEY);
 };
-
-

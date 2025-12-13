@@ -28,14 +28,6 @@ import { toast } from 'sonner';
  * - 응답: { "category_codes": string[] }
  * - staleTime: 5분 (5분 동안 캐시된 데이터 사용)
  * - retry: 1 (실패 시 1번만 재시도)
- * 
- * 사용 예시:
- * ```typescript
- * const { data, isLoading, error } = useInterestCategories();
- * if (data) {
- *   const codes = data.category_codes; // ["cs.AI", "cs.CL"]
- * }
- * ```
  */
 export const useInterestCategories = () => {
   return useQuery<UserInterestsResponse, Error>({

@@ -1,19 +1,41 @@
-// 논문 관련 React Query 훅
+/**
+ * 논문 관련 React Query 훅
+ * 
+ * 이 파일은 논문 검색, 조회, 북마크 등 논문 관련 기능을 위한 React Query 훅을 정의합니다.
+ */
+
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { api, endpoints, Paper, SearchPapersResponse, BookmarkResponse, SearchHistoryResponse, fetchSearchHistory, fetchViewedPapers, addBookmark, AddBookmarkResponse, deleteBookmark, BookmarkItem, fetchBookmarks, searchPapers, getPaperDetail, getRecommendations } from '../../lib/api';
 import { useAuthStore } from '../../store/authStore';
 import { useAppStore } from '../../store/useAppStore';
 import { toast } from 'sonner';
 
+/**
+ * 논문 검색 파라미터 인터페이스
+ */
 export interface SearchPapersParams {
-  q?: string;
-  categories?: string[];
-  page?: number;
-  sort_by?: string;
+  q?: string;              // 검색어
+  categories?: string[];   // 카테고리 필터
+  page?: number;          // 페이지 번호
+  sort_by?: string;       // 정렬 기준
+  page_size?: number;     // 페이지 크기
 }
 
-// 논문 검색 쿼리
+/**
+ * 논문 검색 쿼리 훅
+ * 
+ * @param params - 검색 파라미터
+ * @param enabled - 쿼리 활성화 여부
+ * @returns React Query 쿼리 객체
+ * 
+ * 기능:
+ * - 검색어, 카테고리, 정렬 기준으로 논문 검색
+ * - 검색어, 카테고리, sort_by 중 하나라도 있으면 활성화
+ * - staleTime: 2분
+ * - retry: false (실패 시 재시도 안 함)
+ */
 export function useSearchPapersQuery(params: SearchPapersParams, enabled: boolean = true) {
+  // 카테고리 배열을 정렬하여 캐시 키 생성 (순서 무관하게 동일한 캐시 사용)
   const categoriesKey = params.categories && params.categories.length > 0
     ? [...params.categories].sort().join(',')
     : undefined;
@@ -25,21 +47,34 @@ export function useSearchPapersQuery(params: SearchPapersParams, enabled: boolea
         params.q,
         params.page || 1,
         params.categories && params.categories.length > 0 ? params.categories : undefined,
-        params.sort_by
+        params.sort_by,
+        params.page_size
       );
     },
-    // 검색어, 카테고리, 또는 정렬 기준 중 하나라도 있으면 활성화 (카테고리만으로도 검색 가능)
+    // 검색어, 카테고리, 또는 sort_by가 있으면 활성화
+    // 인기 논문의 경우 sort_by만으로도 조회 가능
     enabled: enabled && (
       (params.q !== undefined && params.q !== '') || 
-      (params.categories !== undefined && params.categories.length > 0) || 
-      params.sort_by !== undefined
+      (params.categories !== undefined && params.categories.length > 0) ||
+      (params.sort_by !== undefined && params.sort_by !== '')
     ),
-    staleTime: 2 * 60 * 1000,
-    retry: false,
+    staleTime: 2 * 60 * 1000, // 2분
+    retry: false, // 실패 시 재시도 안 함
   });
 }
 
-// 논문 상세 조회
+/**
+ * 논문 상세 조회 쿼리 훅
+ * 
+ * @param paperId - 논문 ID
+ * @param enabled - 쿼리 활성화 여부
+ * @returns React Query 쿼리 객체
+ * 
+ * 기능:
+ * - GET /papers/{paperId} 엔드포인트 호출
+ * - paperId가 있을 때만 활성화
+ * - staleTime: 5분
+ */
 export function usePaperDetailQuery(paperId: string | number, enabled: boolean = true) {
   return useQuery({
     queryKey: ['papers', 'detail', paperId],
@@ -51,7 +86,21 @@ export function usePaperDetailQuery(paperId: string | number, enabled: boolean =
   });
 }
 
-// 추천 논문 조회: paperId별 캐시 분리, 논문 변경 시에만 API 호출
+/**
+ * 추천 논문 조회 쿼리 훅
+ * 
+ * @param paperId - 기준 논문 ID (null이면 비활성화)
+ * @param topK - 추천 논문 개수 (기본값: 6)
+ * @param enabled - 쿼리 활성화 여부
+ * @returns React Query 쿼리 객체
+ * 
+ * 기능:
+ * - GET /papers/{paperId}/recommendations?top_k={topK} 엔드포인트 호출
+ * - paperId별로 캐시 분리 (논문 변경 시에만 API 호출)
+ * - 로그인 상태일 때만 활성화
+ * - staleTime: 5분
+ * - refetchOnMount: false (마운트 시 자동 재조회 안 함)
+ */
 export function useRecommendationsQuery(
   paperId: string | number | null,
   topK: number = 6,
@@ -74,7 +123,16 @@ export function useRecommendationsQuery(
   });
 }
 
-// 북마크 목록 조회
+/**
+ * 북마크 목록 조회 쿼리 훅
+ * 
+ * @returns React Query 쿼리 객체
+ * 
+ * 기능:
+ * - GET /bookmarks 엔드포인트 호출
+ * - 로그인 상태일 때만 활성화
+ * - staleTime: 1분
+ */
 export function useBookmarksQuery() {
   const isLoggedIn = useAuthStore((state) => state.isLoggedIn);
 
@@ -88,7 +146,17 @@ export function useBookmarksQuery() {
   });
 }
 
-// 북마크 토글 뮤테이션
+/**
+ * 북마크 토글 뮤테이션 훅
+ * 
+ * @returns React Query 뮤테이션 객체
+ * 
+ * 기능:
+ * - POST /papers/{paperId}/bookmark 엔드포인트 호출
+ * - Optimistic Update 적용 (즉시 UI 업데이트)
+ * - 성공 시 관련 쿼리 캐시 무효화
+ * - 에러 시 이전 상태로 롤백
+ */
 export function useToggleBookmarkMutation() {
   const queryClient = useQueryClient();
   const toggleBookmark = useAppStore((state) => state.toggleBookmark);
@@ -99,6 +167,9 @@ export function useToggleBookmarkMutation() {
       const response = await api.post<BookmarkResponse>(endpoints.papers.toggleBookmark(paperId));
       return response.data;
     },
+    /**
+     * Optimistic Update: API 호출 전에 UI를 먼저 업데이트
+     */
     onMutate: async (paperId: number) => {
       if (!isLoggedIn) {
         toast.error('로그인이 필요합니다', {
@@ -107,15 +178,20 @@ export function useToggleBookmarkMutation() {
         throw new Error('Not logged in');
       }
 
+      // 진행 중인 쿼리 취소
       await queryClient.cancelQueries({ queryKey: ['bookmarks'] });
       
+      // 이전 북마크 목록 저장 (롤백용)
       const previousBookmarks = queryClient.getQueryData<BookmarkItem[]>(['bookmarks']);
       
       if (previousBookmarks) {
         const paperIdString = String(paperId);
+        // 현재 북마크 상태 확인
         const isBookmarked = previousBookmarks.some(b => 
           b.paper_id === paperIdString || String(b.paper?.id) === paperIdString
         );
+        
+        // Optimistic Update: 북마크 상태에 따라 추가/제거
         const newBookmarks = isBookmarked
           ? previousBookmarks.filter(b => {
               const bookmarkPaperId = b.paper_id || (b.paper?.id ? String(b.paper.id) : null);
@@ -147,7 +223,17 @@ export function useToggleBookmarkMutation() {
   });
 }
 
-// 북마크 추가
+/**
+ * 북마크 추가 뮤테이션 훅
+ * 
+ * @returns React Query 뮤테이션 객체
+ * 
+ * 기능:
+ * - POST /bookmarks 엔드포인트 호출
+ * - Optimistic Update 적용
+ * - 성공 시 관련 쿼리 캐시 무효화
+ * - 중복 북마크 에러 처리
+ */
 export function useAddBookmarkMutation() {
   const queryClient = useQueryClient();
   const isLoggedIn = useAuthStore((state) => state.isLoggedIn);
@@ -224,7 +310,15 @@ export function useAddBookmarkMutation() {
   });
 }
 
-// 북마크 삭제
+/**
+ * 북마크 삭제 뮤테이션 훅
+ * 
+ * @returns React Query 뮤테이션 객체
+ * 
+ * 기능:
+ * - DELETE /bookmarks/{bookmarkId} 엔드포인트 호출
+ * - 성공 시 관련 쿼리 캐시 무효화
+ */
 export function useDeleteBookmarkMutation() {
   const queryClient = useQueryClient();
   const isLoggedIn = useAuthStore((state) => state.isLoggedIn);
@@ -254,9 +348,19 @@ export function useDeleteBookmarkMutation() {
     },
   });
 }
-
-
-// 검색 기록 조회
+/**
+ * 검색 기록 조회 쿼리 훅
+ * 
+ * @param userId - 사용자 ID
+ * @param limit - 조회할 기록 개수 (기본값: 20)
+ * @param enabled - 쿼리 활성화 여부
+ * @returns React Query 쿼리 객체
+ * 
+ * 기능:
+ * - GET /search-history?user_id={userId}&limit={limit} 엔드포인트 호출
+ * - userId가 있을 때만 활성화
+ * - staleTime: 1분
+ */
 export function useSearchHistoryQuery(userId: string | null, limit: number = 20, enabled: boolean = true) {
   return useQuery({
     queryKey: ['papers', 'searchHistory', userId, limit],
@@ -269,7 +373,19 @@ export function useSearchHistoryQuery(userId: string | null, limit: number = 20,
   });
 }
 
-// 조회한 논문 조회 (페이지네이션 지원)
+/**
+ * 조회한 논문 조회 쿼리 훅 (페이지네이션 지원)
+ * 
+ * @param page - 페이지 번호 (기본값: 1)
+ * @param limit - 페이지당 논문 개수 (기본값: 10)
+ * @param enabled - 쿼리 활성화 여부
+ * @returns React Query 쿼리 객체
+ * 
+ * 기능:
+ * - GET /papers/viewed?page={page}&limit={limit} 엔드포인트 호출
+ * - 로그인 상태일 때만 활성화
+ * - staleTime: 1분
+ */
 export function useViewedPapersQuery(page: number = 1, limit: number = 10, enabled: boolean = true) {
   const isLoggedIn = useAuthStore((state) => state.isLoggedIn);
   

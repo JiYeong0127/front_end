@@ -18,12 +18,6 @@ import { useAuthStore } from '../../store/authStore';
  * - 로그인 API 호출 (POST /auth/login)
  * - 성공 시 authStore에 토큰과 사용자 정보 저장
  * - userId 업데이트
- * 
- * 사용 예시:
- * ```tsx
- * const { mutate: handleLogin, isPending } = useLoginMutation();
- * handleLogin({ username: 'user', password: 'pass' });
- * ```
  */
 export const useLoginMutation = () => {
   const store = useAuthStore();

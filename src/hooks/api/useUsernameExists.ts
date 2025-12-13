@@ -19,13 +19,6 @@ import { checkUsernameExists } from '../../lib/api';
  * - GET /auth/username-exists?username={username} 엔드포인트 호출
  * - enabled가 false이면 쿼리 비활성화
  * - staleTime: 30초 (30초 동안 캐시된 데이터 사용)
- * 
- * 사용 예시:
- * ```tsx
- * const { data: exists, isLoading } = useUsernameExistsQuery(username, username.length > 0);
- * // exists === true: 이미 사용 중인 아이디
- * // exists === false: 사용 가능한 아이디
- * ```
  */
 export const useUsernameExistsQuery = (username: string, enabled: boolean) => {
   return useQuery({

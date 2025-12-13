@@ -1,15 +1,26 @@
+/**
+ * 회원가입 페이지 컴포넌트
+ * 
+ * 기능: 사용자 회원가입 처리 및 아이디 중복 확인, 비밀번호 유효성 검사
+ */
 import { useState, type FormEvent, type ChangeEvent } from 'react';
 import { Eye, EyeOff, Check, X } from 'lucide-react';
-import { Button } from '../ui/button';
-import { Input } from '../ui/input';
-import { Label } from '../ui/label';
-import { Card, CardContent, CardHeader } from '../ui/card';
-import { Alert, AlertDescription } from '../ui/alert';
-import { ScrollToTopButton } from '../layout/ScrollToTopButton';
-import { useNavigation } from '../../hooks/useNavigation';
-import { useRegisterMutation } from '../../hooks/api/useRegister';
-import { useUsernameExistsQuery } from '../../hooks/api/useUsernameExists';
-import logo from '../../assets/logo.png';
+import { Button } from '../components/ui/button';
+import { Input } from '../components/ui/input';
+import { Label } from '../components/ui/label';
+import { Card, CardContent, CardHeader } from '../components/ui/card';
+import { Alert, AlertDescription } from '../components/ui/alert';
+import { ScrollToTopButton } from '../components/layout/ScrollToTopButton';
+import { useNavigation } from '../hooks/useNavigation';
+import { useRegisterMutation } from '../hooks/api/useRegister';
+import { useUsernameExistsQuery } from '../hooks/api/useUsernameExists';
+import logo from '../assets/logo.png';
+
+const COLORS = {
+  primary: '#215285',
+  primaryHover: '#1A3E66',
+  accent: '#4FA3D1',
+};
 
 export function SignupPage() {
   const { goToLogin, goToHome } = useNavigation();
@@ -25,10 +36,9 @@ export function SignupPage() {
     email: '',
   });
   
-  // 아이디 중복 확인
   const usernameExistsQuery = useUsernameExistsQuery(
     formData.username,
-    formData.username.length > 0 // username이 있을 때만 확인
+    formData.username.length > 0
   );
 
   const [touched, setTouched] = useState({
@@ -39,7 +49,6 @@ export function SignupPage() {
     email: false,
   });
 
-  // Password validation
   const passwordValidation = {
     length: formData.password.length >= 8,
     hasNumber: /\d/.test(formData.password),
@@ -50,10 +59,9 @@ export function SignupPage() {
   const passwordsMatch = formData.password === formData.passwordConfirm && formData.passwordConfirm !== '';
   const emailValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email);
 
-  // 아이디 중복 여부 확인
   const isUsernameAvailable = formData.username.length > 0 
     ? usernameExistsQuery.data === false 
-    : null; // 아직 확인하지 않음
+    : null;
   
   const isUsernameValid = formData.username.length > 0 && (isUsernameAvailable === null || isUsernameAvailable === true);
 
@@ -75,7 +83,6 @@ export function SignupPage() {
   const handleSignup = (e: FormEvent) => {
     e.preventDefault();
     
-    // 모든 필드를 touched 상태로 변경하여 유효성 검사 메시지 표시
     if (!isFormValid) {
       setTouched({
         name: true,
@@ -116,10 +123,9 @@ export function SignupPage() {
           />
         </div>
 
-        {/* Signup Card */}
-        <Card className="shadow-lg" style={{ borderRadius: '12px' }}>
+        <Card className="shadow-lg rounded-xl">
           <CardHeader className="text-center pb-4">
-            <h2 className="text-[24px]">회원가입</h2>
+            <h2 className="text-[var(--font-size-24)]">회원가입</h2>
             <p className="text-gray-600 mt-2">RSRS 계정을 만들어보세요</p>
           </CardHeader>
 
@@ -274,23 +280,21 @@ export function SignupPage() {
               {/* Signup Button */}
               <Button
                 type="submit"
-                className="w-full h-12 text-white transition-colors"
-                style={{ backgroundColor: '#215285' }}
-                onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#1A3E66'}
-                onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#215285'}
+                className="w-full h-12 text-white transition-colors hover:opacity-90"
+                style={{ backgroundColor: COLORS.primary }}
                 disabled={registerMutation.isPending || !isFormValid}
               >
                 {registerMutation.isPending ? '회원가입 중...' : '회원가입'}
               </Button>
             </form>
 
-            {/* Login Link */}
             <div className="mt-6 text-center">
               <p className="text-sm text-gray-600">
                 이미 계정이 있으신가요?{' '}
                 <button
                   onClick={goToLogin}
-                  className="text-[#4FA3D1] hover:underline"
+                  className="text-[var(--color-accent)] hover:underline"
+                  style={{ color: COLORS.accent }}
                 >
                   로그인
                 </button>

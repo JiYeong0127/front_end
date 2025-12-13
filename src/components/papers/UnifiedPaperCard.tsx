@@ -11,6 +11,17 @@ import {
 import { UnifiedPaperCardProps } from '../../types/paper';
 
 /**
+ * 색상 상수
+ */
+const COLORS = {
+  primary: '#215285',      // 메인 색상 (제목, 텍스트)
+  accent: '#4FA3D1',       // 강조 색상 (아이콘, 북마크, 호버)
+  link: '#2563eb',         // 링크 색상 (자세히 보기)
+  bookmarkInactive: '#ccc', // 비활성 북마크 색상
+  categoryBg: '#EAF4FA',   // 카테고리 배경 색상
+} as const;
+
+/**
  * 통합 PaperCard 컴포넌트
  * 
  * variant에 따라 다른 레이아웃을 렌더링합니다:
@@ -61,13 +72,25 @@ export function UnifiedPaperCard({
   className,
   recommendationId,
 }: UnifiedPaperCardProps) {
+  // 저자 확장/축소 상태
   const [isAuthorsExpanded, setIsAuthorsExpanded] = useState(false);
+  
+  // 저자 더보기 버튼 표시 여부
   const [showExpandButton, setShowExpandButton] = useState(false);
+  
+  // 저자 텍스트 참조
   const authorsRef = useRef<HTMLDivElement>(null);
+  
+  // 저자 텍스트 정규화
   const authorsText = Array.isArray(authors) ? authors.join(', ') : authors;
+  
+  // 연도 텍스트 정규화
   const yearText = year ? String(year) : undefined;
 
-  // 저자가 2줄 이상인지 확인
+  /**
+   * 저자 텍스트가 2줄 이상인지 확인
+   * 2줄 이상이면 "더보기" 버튼 표시
+   */
   useEffect(() => {
     if (authorsRef.current) {
       const element = authorsRef.current;
@@ -77,12 +100,20 @@ export function UnifiedPaperCard({
     }
   }, [authorsText]);
 
+  /**
+   * 카드 클릭 핸들러
+   * 논문 상세 페이지로 이동
+   */
   const handleCardClick = () => {
     if (onPaperClick) {
       onPaperClick(paperId, recommendationId);
     }
   };
 
+  /**
+   * 북마크 클릭 핸들러
+   * 이벤트 전파를 막고 북마크 토글 실행
+   */
   const handleBookmarkClick = (e: React.MouseEvent) => {
     e.stopPropagation();
     if (onToggleBookmark) {
@@ -90,7 +121,18 @@ export function UnifiedPaperCard({
     }
   };
 
-  // 북마크 버튼 렌더링
+  /**
+   * 저자 확장/축소 토글 핸들러
+   */
+  const handleAuthorToggle = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setIsAuthorsExpanded(!isAuthorsExpanded);
+  };
+
+  /**
+   * 북마크 버튼 렌더링
+   * variant에 따라 크기와 위치가 다름
+   */
   const renderBookmark = () => {
     if (!showBookmark || !onToggleBookmark) return null;
 
@@ -109,8 +151,8 @@ export function UnifiedPaperCard({
                   variant === 'recommended' ? 'w-4 h-4' : 'w-5 h-5'
                 }`}
                 style={{
-                  color: isBookmarked ? '#4FA3D1' : '#ccc',
-                  fill: isBookmarked ? '#4FA3D1' : 'none',
+                  color: isBookmarked ? COLORS.accent : COLORS.bookmarkInactive,
+                  fill: isBookmarked ? COLORS.accent : 'none',
                 }}
               />
             </button>
@@ -120,6 +162,48 @@ export function UnifiedPaperCard({
           </TooltipContent>
         </Tooltip>
       </TooltipProvider>
+    );
+  };
+
+  /**
+   * 저자 더보기 버튼 렌더링
+   */
+  const renderAuthorExpandButton = () => {
+    if (!showExpandButton) return null;
+
+    return (
+      <button
+        type="button"
+        className="mt-1 text-sm hover:underline transition-colors"
+        style={{ color: COLORS.primary }}
+        onClick={handleAuthorToggle}
+      >
+        {isAuthorsExpanded ? '간략히' : '더보기'}
+      </button>
+    );
+  };
+
+  /**
+   * 카테고리 태그 렌더링
+   */
+  const renderCategories = () => {
+    if (!showCategories || !categories || categories.length === 0) return null;
+
+    return (
+      <div className="flex flex-wrap gap-2">
+        {categories.map((category, index) => (
+          <span
+            key={index}
+            className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium"
+            style={{
+              backgroundColor: COLORS.categoryBg,
+              color: COLORS.accent,
+            }}
+          >
+            {category}
+          </span>
+        ))}
+      </div>
     );
   };
 
@@ -135,8 +219,10 @@ export function UnifiedPaperCard({
         <div className="space-y-3">
           {/* 제목 */}
           <h3 
-            className="line-clamp-2 cursor-pointer hover:text-[#4FA3D1] transition-colors break-words" 
-            style={{ color: '#215285' }}
+            className="line-clamp-2 cursor-pointer transition-colors break-words"
+            style={{ color: COLORS.primary }}
+            onMouseEnter={(e) => e.currentTarget.style.color = COLORS.accent}
+            onMouseLeave={(e) => e.currentTarget.style.color = COLORS.primary}
             onClick={handleCardClick}
           >
             {title}
@@ -150,24 +236,7 @@ export function UnifiedPaperCard({
             >
               저자: {authorsText}
             </div>
-            {showExpandButton && (
-              <button
-                type="button"
-                className="mt-1 text-sm text-[#215285] hover:underline transition-colors"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setIsAuthorsExpanded(!isAuthorsExpanded);
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.textDecoration = 'underline';
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.textDecoration = 'none';
-                }}
-              >
-                {isAuthorsExpanded ? '간략히' : '더보기'}
-              </button>
-            )}
+            {renderAuthorExpandButton()}
           </div>
 
           {/* 업데이트 날짜 */}
@@ -178,22 +247,7 @@ export function UnifiedPaperCard({
           )}
 
           {/* 카테고리 */}
-          {showCategories && categories && categories.length > 0 && (
-            <div className="flex flex-wrap gap-2">
-              {categories.map((category, index) => (
-                <span
-                  key={index}
-                  className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium"
-                  style={{
-                    backgroundColor: '#EAF4FA',
-                    color: '#4FA3D1',
-                  }}
-                >
-                  {category}
-                </span>
-              ))}
-            </div>
-          )}
+          {renderCategories()}
         </div>
       </div>
     );
@@ -210,14 +264,16 @@ export function UnifiedPaperCard({
 
         <div className="space-y-3">
             <h3 
-              className="line-clamp-2 cursor-pointer hover:text-[#4FA3D1] transition-colors break-words" 
-              style={{ color: '#215285' }}
+              className="line-clamp-2 cursor-pointer transition-colors break-words"
+              style={{ color: COLORS.primary }}
+              onMouseEnter={(e) => e.currentTarget.style.color = COLORS.accent}
+              onMouseLeave={(e) => e.currentTarget.style.color = COLORS.primary}
               onClick={handleCardClick}
             >
               {title}
             </h3>
 
-            {/* Authors */}
+            {/* 저자 */}
             <div className="text-sm text-gray-600 break-words">
               <div 
                 ref={authorsRef}
@@ -225,30 +281,13 @@ export function UnifiedPaperCard({
               >
                 저자: {authorsText}
               </div>
-              {showExpandButton && (
-                <button
-                  type="button"
-                  className="mt-1 text-sm text-[#215285] hover:underline transition-colors"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setIsAuthorsExpanded(!isAuthorsExpanded);
-                  }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.textDecoration = 'underline';
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.textDecoration = 'none';
-                  }}
-                >
-                  {isAuthorsExpanded ? '간략히' : '더보기'}
-                </button>
-              )}
+              {renderAuthorExpandButton()}
             </div>
 
             {/* Journal */}
             {showJournal && (
               <div className="text-sm text-gray-600 break-words">
-                저널: {journal || 'Undefined'}
+                저널: {journal && typeof journal === 'string' && journal.trim() !== '' ? journal : 'Undefined'}
               </div>
             )}
 
@@ -269,23 +308,8 @@ export function UnifiedPaperCard({
                 </span>
               )}
 
-              {/* Categories */}
-              {showCategories && categories && categories.length > 0 && (
-                <div className="flex flex-wrap gap-2">
-                  {categories.map((category, index) => (
-                    <span
-                      key={index}
-                      className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium"
-                      style={{
-                        backgroundColor: '#EAF4FA',
-                        color: '#4FA3D1',
-                      }}
-                    >
-                      {category}
-                    </span>
-                  ))}
-                </div>
-              )}
+              {/* 카테고리 */}
+              {renderCategories()}
             </div>
 
             {/* View Original Button */}
@@ -294,7 +318,8 @@ export function UnifiedPaperCard({
                 <Button
                   variant="outline"
                   size="sm"
-                  className="border-[#215285] text-[#215285] hover:bg-[#215285] hover:text-white"
+                  className="hover:bg-[#215285] hover:text-white"
+                  style={{ borderColor: COLORS.primary, color: COLORS.primary }}
                   onClick={() => window.open(externalUrl, '_blank')}
                 >
                   <ExternalLink className="h-4 w-4 mr-2" />
@@ -310,7 +335,12 @@ export function UnifiedPaperCard({
   // Compact variant: 컴팩트 형태
   if (variant === 'compact') {
     return (
-      <Card className={`transition-all hover:shadow-md hover:border-[#4FA3D1] relative ${className || ''}`}>
+      <Card 
+        className={`transition-all hover:shadow-md relative ${className || ''}`}
+        style={{ borderColor: 'transparent' }}
+        onMouseEnter={(e) => e.currentTarget.style.borderColor = COLORS.accent}
+        onMouseLeave={(e) => e.currentTarget.style.borderColor = 'transparent'}
+      >
         <CardContent className="p-4 md:p-5">
           {renderBookmark()}
           
@@ -318,7 +348,7 @@ export function UnifiedPaperCard({
               <div>
                 <h3
                   className="line-clamp-2 mb-2 cursor-pointer hover:text-[#4FA3D1] transition-colors"
-                  style={{ color: '#215285' }}
+                  style={{ color: COLORS.primary }}
                   onClick={handleCardClick}
                 >
                   {title}
@@ -332,30 +362,13 @@ export function UnifiedPaperCard({
                   >
                     저자: {authorsText}
                   </div>
-                  {showExpandButton && (
-                    <button
-                      type="button"
-                      className="mt-1 text-sm text-[#215285] hover:underline transition-colors"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setIsAuthorsExpanded(!isAuthorsExpanded);
-                      }}
-                      onMouseEnter={(e) => {
-                        e.currentTarget.style.textDecoration = 'underline';
-                      }}
-                      onMouseLeave={(e) => {
-                        e.currentTarget.style.textDecoration = 'none';
-                      }}
-                    >
-                      {isAuthorsExpanded ? '간략히' : '더보기'}
-                    </button>
-                  )}
+                  {renderAuthorExpandButton()}
                 </div>
 
                 {/* Journal */}
                 {showJournal && (
                   <div className="text-sm text-gray-600 mb-2">
-                    저널: {journal || 'Undefined'}
+                    저널: {journal && typeof journal === 'string' && journal.trim() !== '' ? journal : 'Undefined'}
                   </div>
                 )}
 
@@ -367,8 +380,8 @@ export function UnifiedPaperCard({
                         key={index}
                         className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium"
                         style={{
-                          backgroundColor: '#EAF4FA',
-                          color: '#4FA3D1',
+                          backgroundColor: COLORS.categoryBg,
+                          color: COLORS.accent,
                         }}
                       >
                         {category}
@@ -382,10 +395,8 @@ export function UnifiedPaperCard({
               <div className="flex justify-end mt-2">
                 <button
                   onClick={handleCardClick}
-                  className="flex items-center gap-1 text-sm transition-colors"
-                  style={{ color: '#2563eb' }}
-                  onMouseEnter={(e) => (e.currentTarget.style.textDecoration = 'underline')}
-                  onMouseLeave={(e) => (e.currentTarget.style.textDecoration = 'none')}
+                  className="flex items-center gap-1 text-sm transition-colors hover:underline"
+                  style={{ color: COLORS.link }}
                 >
                   자세히 보기
                   <ArrowRight className="w-3.5 h-3.5" />
@@ -400,7 +411,9 @@ export function UnifiedPaperCard({
   // Recommended variant: 추천 논문 형태
   if (variant === 'recommended') {
     return (
-      <Card className={`transition-all hover:shadow-md hover:border-[#4FA3D1] relative ${className || ''}`}>
+      <Card 
+        className={`transition-shadow hover:shadow-md relative border border-gray-200 ${className || ''}`}
+      >
         <CardContent className="p-5 flex flex-col h-full">
           {renderBookmark()}
 
@@ -421,31 +434,14 @@ export function UnifiedPaperCard({
               >
                 저자: {authorsText}
               </div>
-              {showExpandButton && (
-                <button
-                  type="button"
-                  className="mt-1 text-xs text-[#215285] hover:underline transition-colors"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setIsAuthorsExpanded(!isAuthorsExpanded);
-                  }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.textDecoration = 'underline';
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.textDecoration = 'none';
-                  }}
-                >
-                  {isAuthorsExpanded ? '간략히' : '더보기'}
-                </button>
-              )}
+              {renderAuthorExpandButton()}
             </div>
           )}
 
           {/* Journal */}
           {showJournal && (
             <div className="mb-2 text-sm text-gray-600 break-words">
-              저널: {journal || 'Undefined'}
+              저널: {journal && typeof journal === 'string' && journal.trim() !== '' ? journal : 'Undefined'}
             </div>
           )}
 
@@ -469,12 +465,16 @@ export function UnifiedPaperCard({
 
           {/* Summary */}
           {showSummary && summary && (
-            <p className="text-sm text-gray-600 line-clamp-3 mb-2">{summary}</p>
+            <p className="text-sm text-gray-600 line-clamp-3 mb-2">
+              {typeof summary === 'string' ? summary : String(summary)}
+            </p>
           )}
 
           {/* Translated Summary */}
           {showTranslatedSummary && translatedSummary && (
-            <p className="text-sm text-gray-500 line-clamp-3 mb-4">{translatedSummary}</p>
+            <p className="text-sm text-gray-500 line-clamp-3 mb-4">
+              {typeof translatedSummary === 'string' ? translatedSummary : String(translatedSummary)}
+            </p>
           )}
 
           {/* 자세히 보기 링크 */}
@@ -482,7 +482,7 @@ export function UnifiedPaperCard({
             <button
               onClick={handleCardClick}
               className="flex items-center gap-1 text-sm transition-colors hover:underline"
-              style={{ color: '#2563eb' }}
+              style={{ color: COLORS.link }}
             >
               자세히 보기
               <ArrowRight className="w-3.5 h-3.5" />
@@ -519,24 +519,7 @@ export function UnifiedPaperCard({
                   >
                     저자: {authorsText}
                   </div>
-                  {showExpandButton && (
-                    <button
-                      type="button"
-                      className="mt-1 text-sm text-[#215285] hover:underline transition-colors"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setIsAuthorsExpanded(!isAuthorsExpanded);
-                      }}
-                      onMouseEnter={(e) => {
-                        e.currentTarget.style.textDecoration = 'underline';
-                      }}
-                      onMouseLeave={(e) => {
-                        e.currentTarget.style.textDecoration = 'none';
-                      }}
-                    >
-                      {isAuthorsExpanded ? '간략히' : '더보기'}
-                    </button>
-                  )}
+                  {renderAuthorExpandButton()}
                 </div>
               </div>
 
@@ -552,28 +535,30 @@ export function UnifiedPaperCard({
             {/* Journal */}
             {showJournal && (
               <div className="text-sm text-gray-600 mb-2">
-                저널: {journal || 'Undefined'}
+                저널: {journal && typeof journal === 'string' && journal.trim() !== '' ? journal : 'Undefined'}
               </div>
             )}
 
             {/* Summary */}
             {showSummary && summary && (
-              <p className="text-sm text-gray-600 line-clamp-2 mb-1">{summary}</p>
+              <p className="text-sm text-gray-600 line-clamp-2 mb-1">
+                {typeof summary === 'string' ? summary : String(summary)}
+              </p>
             )}
 
             {/* Translated Summary */}
             {showTranslatedSummary && translatedSummary && (
-              <p className="text-sm text-gray-500 line-clamp-2 mb-3">{translatedSummary}</p>
+              <p className="text-sm text-gray-500 line-clamp-2 mb-3">
+                {typeof translatedSummary === 'string' ? translatedSummary : String(translatedSummary)}
+              </p>
             )}
 
             {/* 자세히 보기 링크 */}
             <div className="mt-auto flex justify-end">
               <button
                 onClick={handleCardClick}
-                className="flex items-center gap-1 text-sm transition-colors"
-                style={{ color: '#2563eb' }}
-                onMouseEnter={(e) => (e.currentTarget.style.textDecoration = 'underline')}
-                onMouseLeave={(e) => (e.currentTarget.style.textDecoration = 'none')}
+                className="flex items-center gap-1 text-sm transition-colors hover:underline"
+                style={{ color: COLORS.link }}
               >
                 자세히 보기
                 <ArrowRight className="w-3.5 h-3.5" />
