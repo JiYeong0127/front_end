@@ -5,7 +5,7 @@
 import axios, { AxiosError } from 'axios';
 import { LoginRequest, LoginResponse, RegisterRequest, RegisterResponse, UsernameExistsResponse, UserProfile } from '../types/auth';
 
-const BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://44.234.58.137';
+const BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://inha-rsrs.duckdns.org';
 
 /**
  * API 에러 응답 타입
