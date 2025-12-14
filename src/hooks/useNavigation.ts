@@ -12,23 +12,6 @@ import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
  * 
  * @returns 네비게이션 관련 함수 및 유틸리티 객체
  * 
- * 제공하는 기능:
- * - navigate: React Router의 navigate 함수
- * - params: 현재 라우트 파라미터
- * - searchParams: 현재 URL 쿼리 파라미터
- * - goToLogin: 로그인 페이지로 이동
- * - goToSignup: 회원가입 페이지로 이동
- * - goToHome: 홈 페이지로 이동 (새로고침 포함)
- * - goToService: 서비스 소개 페이지로 이동
- * - goToGuide: 사용자 가이드 페이지로 이동
- * - goToMyPage: 마이페이지로 이동
- * - goToRecentPapers: 최근 조회 논문 페이지로 이동
- * - goToMyLibrary: 내 서재 페이지로 이동
- * - goToQuitAccount: 회원 탈퇴 페이지로 이동
- * - goToPaper: 논문 상세 페이지로 이동
- * - goToSearch: 검색 결과 페이지로 이동
- * - goToCategorySearch: 카테고리 검색 결과 페이지로 이동
- * - goBack: 이전 페이지로 이동
  */
 export function useNavigation() {
   const navigate = useNavigate();

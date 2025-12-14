@@ -7,8 +7,8 @@ import { useSearchPapersQuery, useBookmarksQuery } from '../../hooks/api';
  * 색상 상수
  */
 const COLORS = {
-  primary: '#215285',      // 메인 색상 (탭 활성화 배경)
-  accent: '#4FA3D1',        // 강조 색상 (아이콘)
+  primary: '#215285',      // 메인 색상 
+  accent: '#4FA3D1',        // 강조 색상 
   tabInactive: '#F1F1F1',  // 비활성 탭 배경
 } as const;
 
@@ -91,7 +91,7 @@ export function PopularPapers({ onToggleBookmark, onPaperClick }: PopularPapersP
     const activeTabConfig = TABS.find(tab => tab.value === activeTab);
     return {
       q: undefined, // 검색어 없음
-      categories: undefined, // 카테고리 없음 (모든 카테고리)
+      categories: undefined, // 카테고리 없음 
       sort_by: activeTabConfig?.sortBy || 'view_count',
       page: 1,
       page_size: PAPER_CONFIG.MAX_DISPLAY, // 최대 표시 개수만큼만 가져오기

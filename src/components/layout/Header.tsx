@@ -14,9 +14,9 @@ import logo from '../../assets/logo.png';
  * 색상 상수
  */
 const COLORS = {
-  primary: '#215285',      // 메인 색상 (진한 파란색)
-  accent: '#4FA3D1',       // 강조 색상 (밝은 파란색, 아바타 배경)
-  error: '#dc2626',        // 에러 색상 (빨간색, 로그아웃 버튼)
+  primary: '#215285',      // 메인 색상 
+  accent: '#4FA3D1',       // 강조 색상 (아바타 배경)
+  error: '#dc2626',        // 에러 색상 (로그아웃 버튼)
 } as const;
 
 /**

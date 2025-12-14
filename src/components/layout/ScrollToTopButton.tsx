@@ -12,7 +12,7 @@ const COLORS = {
  * 스크롤 관련 상수
  */
 const SCROLL_CONFIG = {
-  THRESHOLD: 300,          // 버튼이 표시되는 스크롤 임계값 (px)
+  THRESHOLD: 300,          // 버튼이 표시되는 스크롤 임계값 
 } as const;
 
 /**
